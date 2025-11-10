@@ -39,36 +39,56 @@ pnpm run start
 
 You should see output in the CodeSandbox terminal showing your route execution!
 
+### 4. Run Tests
+
+Test your routes to ensure they work correctly:
+
+```bash
+pnpm run test
+```
+
+Or run tests in watch mode during development:
+
+```bash
+pnpm run test:watch
+```
+
 ## Example Route Explained
 
 Check out `routes/hello-world.route.ts` - it demonstrates a complete integration flow:
 
 ```typescript
-import { log, craft, simple, fetch } from "@routecraft/routecraft";
+import {
+  log,
+  craft,
+  simple,
+  fetch,
+  type FetchResult,
+} from "@routecraft/routecraft";
 
 export default craft()
   .id("hello-world") // Give your route a name
   .from(simple({ userId: 1 })) // Start with simple data
-  .enrich(
+  .enrich<
+    FetchResult<{ id: number; name: string; username: string; email: string }>
+  >(
     // Enrich with external API call
     fetch({
       method: "GET",
       url: (ex) =>
         `https://jsonplaceholder.typicode.com/users/${ex.body.userId}`,
-    })
+    }),
   )
-  .transform((res) => JSON.parse(res.body)) // Parse the response
-  .transform((user) => `Hello, ${user.name}!`) // Format the message
+  .transform((result) => `Hello, ${result.body.name}!`) // Format the message
   .to(log()); // Log the result
 ```
 
 **What's happening?**
 
 1. 📥 **Input**: Starts with `{ userId: 1 }`
-2. 🌐 **Enrich**: Fetches user data from JSONPlaceholder API
-3. 🔄 **Transform**: Parses JSON response
-4. ✨ **Transform**: Formats greeting message
-5. 📝 **Output**: Logs "Hello, [User's Name]!"
+2. 🌐 **Enrich**: Fetches user data from JSONPlaceholder API (with type safety)
+3. ✨ **Transform**: Formats greeting message using the enriched data
+4. 📝 **Output**: Logs "Hello, [User's Name]!"
 
 ## Try These Experiments
 
@@ -85,20 +105,27 @@ Edit the `simple()` adapter in `hello-world.route.ts`:
 Create a batch route (new file: `routes/batch-users.route.ts`):
 
 ```typescript
-import { log, craft, simple, fetch } from "@routecraft/routecraft";
+import {
+  log,
+  craft,
+  simple,
+  fetch,
+  type FetchResult,
+} from "@routecraft/routecraft";
 
 export default craft()
   .id("batch-users")
   .from(simple([{ userId: 1 }, { userId: 2 }, { userId: 3 }]))
-  .enrich(
+  .enrich<
+    FetchResult<{ id: number; name: string; username: string; email: string }>
+  >(
     fetch({
       method: "GET",
       url: (ex) =>
         `https://jsonplaceholder.typicode.com/users/${ex.body.userId}`,
-    })
+    }),
   )
-  .transform((res) => JSON.parse(res.body))
-  .transform((user) => ({ name: user.name, email: user.email }))
+  .transform((result) => ({ name: result.body.name, email: result.body.email }))
   .to(log());
 ```
 
@@ -115,21 +142,28 @@ export default [helloWorldRoute, batchUsersRoute];
 Add filtering to only show certain users:
 
 ```typescript
-import { log, craft, simple, fetch, filter } from "@routecraft/routecraft";
+import {
+  log,
+  craft,
+  simple,
+  fetch,
+  type FetchResult,
+} from "@routecraft/routecraft";
 
 export default craft()
   .id("filtered-users")
   .from(simple([{ userId: 1 }, { userId: 2 }, { userId: 3 }]))
-  .enrich(
+  .enrich<
+    FetchResult<{ id: number; name: string; username: string; email: string }>
+  >(
     fetch({
       method: "GET",
       url: (ex) =>
         `https://jsonplaceholder.typicode.com/users/${ex.body.userId}`,
-    })
+    }),
   )
-  .transform((res) => JSON.parse(res.body))
-  .filter((user) => user.id <= 2) // Only users with ID 1 or 2
-  .transform((user) => `User: ${user.name}`)
+  .filter((result) => result.body.id <= 2) // Only users with ID 1 or 2
+  .transform((result) => `User: ${result.body.name}`)
   .to(log());
 ```
 
@@ -137,21 +171,29 @@ export default craft()
 
 ```
 .
-├── routes/                    # Your integration routes
-│   └── hello-world.route.ts  # Example route
-├── adapters/                  # Custom adapters (optional)
-├── plugins/                   # Custom plugins (optional)
-├── craft.config.ts           # RouteCraft configuration
-├── index.ts                  # Route registry
-├── package.json              # Dependencies & scripts
-└── tsconfig.json             # TypeScript configuration
+├── routes/                         # Your integration routes
+│   ├── hello-world.route.ts       # Example route
+│   └── hello-world.route.test.ts  # Example route tests
+├── adapters/                       # Custom adapters (optional)
+├── plugins/                        # Custom plugins (optional)
+├── craft.config.ts                # RouteCraft configuration
+├── index.ts                       # Route registry
+├── vitest.config.ts               # Test configuration
+├── package.json                   # Dependencies & scripts
+└── tsconfig.json                  # TypeScript configuration
 ```
 
 ## Available Scripts
 
 - `pnpm run build` - Compile TypeScript to JavaScript
 - `pnpm run start` - Run your compiled routes
+- `pnpm run test` - Run tests with Vitest
+- `pnpm run test:watch` - Run tests in watch mode
+- `pnpm run test:coverage` - Run tests with coverage report
 - `pnpm run lint` - Check code quality with ESLint
+- `pnpm run format` - Check code formatting with Prettier
+- `pnpm run format:write` - Auto-fix code formatting
+- `pnpm run typecheck` - Type-check without emitting files
 
 ## Key Concepts
 
@@ -185,6 +227,64 @@ craft()
   .transform((ex) => ex.body.count * 2) // Body type: number
   .transform((n) => `Count: ${n}`) // Body type: string
   .to(log());
+```
+
+## Testing Your Routes
+
+RouteCraft routes can be tested using Vitest. Check out `routes/hello-world.route.test.ts` for an example.
+
+### Writing Tests
+
+To test a route:
+
+1. **Import the route** and create a test context
+2. **Mock external dependencies** (like HTTP calls)
+3. **Execute the route** using the context
+4. **Verify the behavior** with assertions
+
+```typescript
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { context } from "@routecraft/routecraft";
+import myRoute from "./my-route.js";
+
+describe("My Route", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    // Mock fetch to prevent real API calls
+    fetchMock = vi.fn();
+    globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
+  });
+
+  it("should process data correctly", async () => {
+    // Mock the response
+    const mockResponse = new Response(JSON.stringify({ data: "test" }));
+    fetchMock.mockResolvedValueOnce(mockResponse);
+
+    // Execute the route
+    const testContext = context().routes(myRoute).build();
+    const execution = testContext.start();
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    await testContext.stop();
+    await execution;
+
+    // Verify behavior
+    expect(fetchMock).toHaveBeenCalled();
+  });
+});
+```
+
+### Running Tests
+
+```bash
+# Run all tests once
+pnpm run test
+
+# Watch mode for development
+pnpm run test:watch
+
+# Generate coverage report
+pnpm run test:coverage
 ```
 
 ## Learn More

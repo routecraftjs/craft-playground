@@ -3,22 +3,32 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.17.1",
   "scripts": {
     "build": "tsc",
     "start": "craft run dist/index.js",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "format": "prettier . --check --ignore-unknown",
+    "format:write": "prettier . --write --ignore-unknown",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@routecraft/routecraft": "^0.1.0"
+    "@routecraft/routecraft": "^0.1.1"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
+    "@eslint/js": "^9.39.1",
+    "@routecraft/cli": "^0.1.1",
+    "@routecraft/eslint-plugin-routecraft": "^0.1.1",
+    "@types/node": "^24.10.0",
+    "@vitest/coverage-v8": "^2.1.8",
+    "eslint": "^9.39.1",
+    "pino-pretty": "^13.1.2",
+    "prettier": "^3.6.2",
     "typescript": "^5.0.0",
-    "eslint": "^9.36.0",
-    "@eslint/js": "^9.36.0",
-    "typescript-eslint": "^8.44.1",
-    "@routecraft/eslint-plugin-routecraft": "^0.1.0",
-    "@routecraft/cli": "^0.1.0",
-    "pino-pretty": "^13.1.2"
+    "typescript-eslint": "^8.46.3",
+    "vitest": "^4.0.8"
   }
 }

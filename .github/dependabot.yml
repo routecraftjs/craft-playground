@@ -1,0 +1,43 @@
+version: 2
+
+updates:
+  # Enable version updates for npm
+  - package-ecosystem: "npm"
+    # Look for package.json and package-lock.json files in the root directory
+    directory: "/"
+    # Check for updates once a week
+    schedule:
+      interval: "weekly"
+    # Specify labels for pull requests
+    labels:
+      - "dependencies"
+      - "npm"
+    # Set version update strategy
+    versioning-strategy: increase
+    # Limit the number of open pull requests for version updates
+    open-pull-requests-limit: 10
+    # Allow up to 5 pull requests for version updates
+    pull-request-branch-name:
+      separator: "-"
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+      include: "scope"
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    # Look for GitHub Actions workflow files in the .github/workflows directory
+    directory: "/"
+    # Check for updates once a week
+    schedule:
+      interval: "weekly"
+    # Specify labels for pull requests
+    labels:
+      - "dependencies"
+      - "github-actions"
+    # Limit the number of open pull requests for version updates
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "ci"
+      prefix-development: "ci"
+      include: "scope"

@@ -24,7 +24,7 @@
     "@routecraft/eslint-plugin-routecraft": "^0.1.1",
     "@types/node": "^24.10.0",
     "@vitest/coverage-v8": "^2.1.8",
-    "eslint": "^9.39.1",
+    "eslint": "^9.39.2",
     "pino-pretty": "^13.1.2",
     "prettier": "^3.6.2",
     "typescript": "^5.0.0",

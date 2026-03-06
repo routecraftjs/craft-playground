@@ -1,0 +1,24 @@
+{
+  "$schema": "https://codesandbox.io/schemas/tasks.json",
+  "setupTasks": [
+    {
+      "name": "Install Dependencies",
+      "command": "pnpm install"
+    },
+    {
+      "name": "Build Framework",
+      "command": "pnpm build"
+    },
+    {
+      "name": "Build Framework",
+      "command": "pnpm test"
+    }
+  ],
+  "tasks": {
+    "run-engine": {
+      "name": "Routecraft Engine",
+      "command": "pnpm run start",
+      "runAtStart": true
+    }
+  }
+}

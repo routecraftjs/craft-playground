@@ -1,19 +1,25 @@
 {
-    "name": "Routecraft Starter",
-    "image": "mcr.microsoft.com/devcontainers/typescript-node:1-20-bullseye",
-    "features": {
-      "ghcr.io/devcontainers/features/node:1": {
-        "pnpmVersion": "latest"
+  "name": "Routecraft Starter",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-20-bullseye",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "pnpmVersion": "latest"
+    }
+  },
+  "postCreateCommand": "pnpm install && pnpm build && pnpm test",
+  "postAttachCommand": "pnpm run start",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "terminal.integrated.enableMultiLinePasteWarning": false
       }
     },
-    "postCreateCommand": "pnpm install && pnpm build",
-    "postAttachCommand": "pnpm run start",
-    "customizations": {
-      "vscode": {
-        "settings": {
-          "terminal.integrated.defaultProfile.linux": "bash",
-          "terminal.integrated.enableMultiLinePasteWarning": false
-        }
-      }
+    "codespaces": {
+      "openFiles": [
+        "README.md",
+        "capabilities/hello-world.ts"
+      ]
     }
   }
+}

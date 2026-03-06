@@ -7,7 +7,7 @@ export default [
   pluginJs.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ["routes/**/*.{ts,js}", "**/*.route.{ts,js}", "**/*.{ts,js}"],
+    files: ["capabilities/**/*.{ts,js}", "**/*.{ts,js,mjs,cjs}"],
     plugins: { "@routecraft/routecraft": routecraftPlugin },
     ...routecraftPlugin.configs.recommended,
   },

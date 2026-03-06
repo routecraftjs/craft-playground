@@ -55,7 +55,7 @@ pnpm run test:watch
 
 ## Example Route Explained
 
-Check out `routes/hello-world.route.ts` - it demonstrates a complete integration flow:
+Check out `capabilities/hello-world.ts` - it demonstrates a complete integration flow:
 
 ```typescript
 import {
@@ -94,7 +94,7 @@ export default craft()
 
 ### Experiment 1: Change the User ID
 
-Edit the `simple()` adapter in `hello-world.route.ts`:
+Edit the `simple()` adapter in `hello-world.ts`:
 
 ```typescript
 .from(simple({ userId: 3 }))  // Try different user IDs (1-10)
@@ -102,7 +102,7 @@ Edit the `simple()` adapter in `hello-world.route.ts`:
 
 ### Experiment 2: Add Multiple Users
 
-Create a batch route (new file: `routes/batch-users.route.ts`):
+Create a batch route (new file: `capabilities/batch-users.ts`):
 
 ```typescript
 import {
@@ -132,7 +132,7 @@ export default craft()
 Don't forget to export it in `index.ts`:
 
 ```typescript
-import batchUsersRoute from "./routes/batch-users.route.js";
+import batchUsersRoute from "./capabilities/batch-users.js";
 
 export default [helloWorldRoute, batchUsersRoute];
 ```
@@ -171,16 +171,16 @@ export default craft()
 
 ```
 .
-├── routes/                         # Your integration routes
-│   ├── hello-world.route.ts       # Example route
-│   └── hello-world.route.test.ts  # Example route tests
+├── capabilities/                   # Your integration routes
+│   ├── hello-world.ts              # Example route
+│   └── hello-world.test.ts         # Example route tests
 ├── adapters/                       # Custom adapters (optional)
 ├── plugins/                        # Custom plugins (optional)
-├── craft.config.ts                # RouteCraft configuration
-├── index.ts                       # Route registry
-├── vitest.config.ts               # Test configuration
-├── package.json                   # Dependencies & scripts
-└── tsconfig.json                  # TypeScript configuration
+├── craft.config.ts                 # RouteCraft configuration
+├── index.ts                        # Route registry
+├── vitest.config.ts                # Test configuration
+├── package.json                    # Dependencies & scripts
+└── tsconfig.json                   # TypeScript configuration
 ```
 
 ## Available Scripts
@@ -231,7 +231,7 @@ craft()
 
 ## Testing Your Routes
 
-RouteCraft routes can be tested using Vitest. Check out `routes/hello-world.route.test.ts` for an example.
+RouteCraft routes can be tested using Vitest. Check out `capabilities/hello-world.test.ts` for an example.
 
 ### Writing Tests
 

@@ -1,10 +1,6 @@
 {
   "$schema": "https://codesandbox.io/schemas/tasks.json",
-  "setupTasks": [
-    "pnpm install",
-    "pnpm test",
-    "pnpm build"
-  ],
+  "setupTasks": ["pnpm install", "pnpm test"],
   "tasks": {
     "run-framework": {
       "name": "Routecraft Engine",

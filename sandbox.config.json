@@ -1,4 +1,4 @@
 {
-    "view": "editor",
-    "initialPath": "capabilities/hello-world.ts"
-  }
+  "view": "editor",
+  "initialPath": "capabilities/hello-world.ts"
+}

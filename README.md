@@ -21,15 +21,7 @@ CodeSandbox should automatically install dependencies. If not, click the **Insta
 pnpm install
 ```
 
-### 2. Build the Project
-
-Compile TypeScript to JavaScript:
-
-```bash
-pnpm run build
-```
-
-### 3. Run Your Routes
+### 2. Run Your Routes
 
 Execute the compiled routes:
 
@@ -39,7 +31,7 @@ pnpm run start
 
 You should see output in the CodeSandbox terminal showing your route execution!
 
-### 4. Run Tests
+### 3. Run Tests
 
 Test your routes to ensure they work correctly:
 
@@ -185,7 +177,6 @@ export default craft()
 
 ## Available Scripts
 
-- `pnpm run build` - Compile TypeScript to JavaScript
 - `pnpm run start` - Run your compiled routes
 - `pnpm run test` - Run tests with Vitest
 - `pnpm run test:watch` - Run tests in watch mode
@@ -301,7 +292,6 @@ Ready to use RouteCraft in a real project? Install it locally:
 pnpm create routecraft@latest my-app
 cd my-app
 pnpm install
-pnpm run build
 pnpm run start
 ```
 

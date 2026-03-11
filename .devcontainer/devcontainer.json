@@ -16,10 +16,7 @@
       }
     },
     "codespaces": {
-      "openFiles": [
-        "README.md",
-        "capabilities/hello-world.ts"
-      ]
+      "openFiles": ["README.md", "capabilities/hello-world.ts"]
     }
   }
 }

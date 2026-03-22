@@ -15,7 +15,8 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@routecraft/routecraft": "0.3.0"
+    "@routecraft/routecraft": "0.3.0",
+    "up": "^1.0.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

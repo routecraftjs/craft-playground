@@ -4,14 +4,16 @@
 
   <p><strong>Give AI access, not control</strong></p>
 
-  [![License](https://img.shields.io/badge/License-Apache%202.0-blue)](LICENSE)
-  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](https://github.com/routecraftjs/craft-playground/pulls)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](https://github.com/routecraftjs/craft-playground/pulls)
 
 </div>
 
 # RouteCraft Playground 🚀
 
-Welcome to the **RouteCraft Playground**! This is a ready-to-run RouteCraft project where you can experiment with building integration routes directly in your browser—no installation required.
+Welcome to the **RouteCraft Playground**! This is a ready-to-run RouteCraft project where you can experiment with building integration capabilities directly in your browser, no installation required.
+
+> **Runtime:** RouteCraft 0.5.0 ships a Bun-only `craft` CLI and uses `bun test` as the test runner. This playground targets [Bun](https://bun.sh) >= 1.1.0.
 
 ## What is RouteCraft?
 
@@ -29,31 +31,31 @@ RouteCraft is a TypeScript-first integration framework inspired by Apache Camel.
 CodeSandbox should automatically install dependencies. If not, click the **Install** button or run:
 
 ```bash
-pnpm install
+bun install
 ```
 
 ### 2. Run Your Capabilities
 
-Execute the compiled capabilities:
+Execute your capabilities with the `craft` CLI:
 
 ```bash
-pnpm run start
+bun run start
 ```
 
-You should see output in the CodeSandbox terminal showing your capability execution!
+You should see output in the terminal showing your capability execution!
 
 ### 3. Run Tests
 
 Test your capabilities to ensure they work correctly:
 
 ```bash
-pnpm run test
+bun test
 ```
 
 Or run tests in watch mode during development:
 
 ```bash
-pnpm run test:watch
+bun test --watch
 ```
 
 ## Example Capability Explained
@@ -61,22 +63,14 @@ pnpm run test:watch
 Check out `capabilities/hello-world.ts` - it demonstrates a complete integration flow:
 
 ```typescript
-import {
-  log,
-  craft,
-  simple,
-  fetch,
-  type FetchResult,
-} from "@routecraft/routecraft";
+import { log, craft, simple, http } from "@routecraft/routecraft";
 
 export default craft()
   .id("hello-world") // Give your capability a name
   .from(simple({ userId: 1 })) // Start with simple data
-  .enrich<
-    FetchResult<{ id: number; name: string; username: string; email: string }>
-  >(
-    // Enrich with external API call
-    fetch({
+  .enrich(
+    // Enrich with an external API call (typed input -> output)
+    http<{ userId: number }, { name: string }>({
       method: "GET",
       url: (ex) =>
         `https://jsonplaceholder.typicode.com/users/${ex.body.userId}`,
@@ -108,33 +102,29 @@ Edit the `simple()` adapter in `hello-world.ts`:
 Create a batch capability (new file: `capabilities/batch-users.ts`):
 
 ```typescript
-import {
-  log,
-  craft,
-  simple,
-  fetch,
-  type FetchResult,
-} from "@routecraft/routecraft";
+import { log, craft, simple, http } from "@routecraft/routecraft";
 
 export default craft()
   .id("batch-users")
   .from(simple([{ userId: 1 }, { userId: 2 }, { userId: 3 }]))
-  .enrich<
-    FetchResult<{ id: number; name: string; username: string; email: string }>
-  >(
-    fetch({
+  .enrich(
+    http<{ userId: number }, { name: string; email: string }>({
       method: "GET",
       url: (ex) =>
         `https://jsonplaceholder.typicode.com/users/${ex.body.userId}`,
     }),
   )
-  .transform((result) => ({ name: result.body.name, email: result.body.email }))
+  .transform((result) => ({
+    name: result.body.name,
+    email: result.body.email,
+  }))
   .to(log());
 ```
 
 Don't forget to export it in `index.ts`:
 
 ```typescript
+import helloWorld from "./capabilities/hello-world.js";
 import batchUsers from "./capabilities/batch-users.js";
 
 export default [helloWorld, batchUsers];
@@ -145,21 +135,13 @@ export default [helloWorld, batchUsers];
 Add filtering to only show certain users:
 
 ```typescript
-import {
-  log,
-  craft,
-  simple,
-  fetch,
-  type FetchResult,
-} from "@routecraft/routecraft";
+import { log, craft, simple, http } from "@routecraft/routecraft";
 
 export default craft()
   .id("filtered-users")
   .from(simple([{ userId: 1 }, { userId: 2 }, { userId: 3 }]))
-  .enrich<
-    FetchResult<{ id: number; name: string; username: string; email: string }>
-  >(
-    fetch({
+  .enrich(
+    http<{ userId: number }, { id: number; name: string }>({
       method: "GET",
       url: (ex) =>
         `https://jsonplaceholder.typicode.com/users/${ex.body.userId}`,
@@ -176,26 +158,26 @@ export default craft()
 .
 ├── capabilities/                   # Your integration capabilities
 │   ├── hello-world.ts              # Example capability
-│   └── hello-world.test.ts         # Example capability tests
+│   └── hello-world.bun.test.ts     # Example capability tests (bun:test)
 ├── adapters/                       # Custom adapters (optional)
 ├── plugins/                        # Custom plugins (optional)
-├── craft.config.ts                 # RouteCraft configuration
+├── craft.config.ts                 # RouteCraft configuration (defineConfig)
 ├── index.ts                        # RouteCraft main entry
-├── vitest.config.ts                # Test configuration
 ├── package.json                    # Dependencies & scripts
-└── tsconfig.json                   # TypeScript configuration
+├── tsconfig.json                   # TypeScript configuration
+└── .prettierrc                     # Formatting configuration
 ```
 
 ## Available Scripts
 
-- `pnpm run start` - Run your compiled capabilities
-- `pnpm run test` - Run tests with Vitest
-- `pnpm run test:watch` - Run tests in watch mode
-- `pnpm run test:coverage` - Run tests with coverage report
-- `pnpm run lint` - Check code quality with ESLint
-- `pnpm run format` - Check code formatting with Prettier
-- `pnpm run format:write` - Auto-fix code formatting
-- `pnpm run typecheck` - Type-check without emitting files
+- `bun run start` - Run your capabilities with the `craft` CLI
+- `bun test` - Run tests with `bun:test`
+- `bun test --watch` - Run tests in watch mode
+- `bun run test:coverage` - Run tests with coverage report
+- `bun run lint` - Check code quality with ESLint
+- `bun run format` - Check code formatting with Prettier
+- `bun run format:write` - Auto-fix code formatting
+- `bun run typecheck` - Type-check without emitting files
 
 ## Key Concepts
 
@@ -204,8 +186,9 @@ export default craft()
 Adapters connect your capabilities to external systems:
 
 - **`simple(data)`** - Start with static data
-- **`fetch(options)`** - Make HTTP requests
+- **`http(options)`** - Make HTTP requests
 - **`timer(options)`** - Trigger on a schedule
+- **`cron(options)`** - Trigger on a cron expression
 - **`direct()`** - Receive data from other capabilities
 
 ### Operations
@@ -218,6 +201,7 @@ Operations transform and control data flow:
 - **`choice()`** - Route based on conditions
 - **`split(fn)`** - Break one message into many
 - **`aggregate(options)`** - Combine many messages into one
+- **`error(handler)`** - Recover from failures (route-level or step-level)
 
 ### Type Safety
 
@@ -231,47 +215,55 @@ craft()
   .to(log());
 ```
 
+### Route-level metadata and validation
+
+In 0.5.0, discovery metadata and schema validation live on the route builder, so any source adapter inherits them:
+
+```typescript
+import { craft, direct, log } from "@routecraft/routecraft";
+import { z } from "zod";
+
+const Input = z.object({ userId: z.number() });
+
+export default craft()
+  .id("greet")
+  .title("Greet user")
+  .description("Look up a user by id and return a greeting")
+  .input({ body: Input }) // framework-enforced before the pipeline runs
+  .from(direct())
+  .to(log());
+```
+
 ## Testing Your Capabilities
 
-RouteCraft capabilities can be tested using Vitest. Check out `capabilities/hello-world.test.ts` for an example.
+RouteCraft capabilities are tested with `bun:test` and the `@routecraft/testing` package. Check out `capabilities/hello-world.bun.test.ts` for a complete example.
 
 ### Writing Tests
 
 To test a capability:
 
-1. **Import the capability** and create a test context
+1. **Import the capability** and build a test context with `testContext()`
 2. **Mock external dependencies** (like HTTP calls)
-3. **Execute the capability** using the context
-4. **Verify the behavior** with assertions
+3. **Run the capability** with `t.test()`
+4. **Verify the behavior** with assertions against `t.logger`
 
 ```typescript
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { context } from "@routecraft/routecraft";
-import myRoute from "./my-route.js";
+import { describe, test, expect, mock, afterEach } from "bun:test";
+import { testContext, type TestContext } from "@routecraft/testing";
+import capability from "./my-capability.js";
 
 describe("My Capability", () => {
-  let fetchMock: ReturnType<typeof vi.fn>;
+  let t: TestContext;
 
-  beforeEach(() => {
-    // Mock fetch to prevent real API calls
-    fetchMock = vi.fn();
-    globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
+  afterEach(async () => {
+    if (t) await t.stop();
   });
 
-  it("should process data correctly", async () => {
-    // Mock the response
-    const mockResponse = new Response(JSON.stringify({ data: "test" }));
-    fetchMock.mockResolvedValueOnce(mockResponse);
+  test("processes data correctly", async () => {
+    t = await testContext().routes(capability).build();
+    await t.test();
 
-    // Execute the capability
-    const testContext = context().routes(myRoute).build();
-    const execution = testContext.start();
-    await new Promise((resolve) => setTimeout(resolve, 150));
-    await testContext.stop();
-    await execution;
-
-    // Verify behavior
-    expect(fetchMock).toHaveBeenCalled();
+    expect(t.logger.info).toHaveBeenCalled();
   });
 });
 ```
@@ -280,30 +272,31 @@ describe("My Capability", () => {
 
 ```bash
 # Run all tests once
-pnpm run test
+bun test
 
 # Watch mode for development
-pnpm run test:watch
+bun test --watch
 
 # Generate coverage report
-pnpm run test:coverage
+bun run test:coverage
 ```
 
 ## Learn More
 
 - 📚 **Documentation**: [routecraft.dev](https://routecraft.dev)
+- 🧭 **Migration guide**: [0.4.x to 0.5.0](https://routecraft.dev/docs/migrating/0.4-to-0.5)
 - 🐙 **GitHub**: [github.com/routecraftjs/routecraft](https://github.com/routecraftjs/routecraft)
 - 💬 **Issues**: [Report bugs or request features](https://github.com/routecraftjs/routecraft/issues)
 
 ## What's Next?
 
-Ready to use RouteCraft in a real project? Install it locally:
+Ready to use RouteCraft in a real project? Scaffold one with Bun:
 
 ```bash
-pnpm create routecraft@latest my-app
+bun create routecraft@latest my-app
 cd my-app
-pnpm install
-pnpm run start
+bun install
+bun run start
 ```
 
 ## License

@@ -1,14 +1,14 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, test, expect, mock, beforeEach, afterEach } from "bun:test";
 import { testContext, type TestContext } from "@routecraft/testing";
 import capabilities from "./hello-world.js";
 
-describe("Hello World Route", () => {
+describe("Hello World Capability", () => {
   let t: TestContext;
-  let fetchMock: ReturnType<typeof vi.fn>;
+  let fetchMock: ReturnType<typeof mock>;
 
   beforeEach(() => {
     // Mock globalThis.fetch to prevent real API calls
-    fetchMock = vi.fn();
+    fetchMock = mock();
     globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
   });
 
@@ -16,16 +16,14 @@ describe("Hello World Route", () => {
     if (t) {
       await t.stop();
     }
-    vi.restoreAllMocks();
   });
 
   /**
-   * @case Verifies that the route fetches user data and greets the person by name
-   * @preconditions Route is imported and fetch is mocked
-   * @expectedResult Route should fetch user and output "Hello, [name]!"
+   * @case Verifies that the capability fetches user data and greets the person by name
+   * @preconditions Capability is imported and fetch is mocked to return a JSON Placeholder user
+   * @expectedResult Capability fetches the user and logs "Hello, [name]!" via the LogAdapter
    */
-  it("should fetch user and greet by name", async () => {
-    // Mock user data from JSON Placeholder
+  test("should fetch user and greet by name", async () => {
     const mockUser = {
       id: 1,
       name: "Leanne Graham",
@@ -33,7 +31,6 @@ describe("Hello World Route", () => {
       email: "Sincere@april.biz",
     };
 
-    // Mock the fetch response
     fetchMock.mockResolvedValue({
       ok: true,
       status: 200,
@@ -42,7 +39,7 @@ describe("Hello World Route", () => {
       url: "https://jsonplaceholder.typicode.com/users/1",
     });
 
-    // Create context with imported route and run full lifecycle (t.logger is a spy)
+    // Create context with imported capability and run the full lifecycle (t.logger is a spy)
     t = await testContext().routes(capabilities).build();
     await t.test();
 
@@ -55,11 +52,11 @@ describe("Hello World Route", () => {
       }),
     );
 
-    // Verify the log was called (route completed)
+    // Verify the log was called (capability completed)
     expect(t.logger.info).toHaveBeenCalled();
 
     // Find the LogAdapter output call (pino.info(object, message)); lifecycle also logs at info
-    const infoSpy = t.logger.info as ReturnType<typeof vi.fn>;
+    const infoSpy = t.logger.info as ReturnType<typeof mock>;
     const logAdapterCall = infoSpy.mock.calls.find(
       (call: unknown[]) => call[1] === "LogAdapter output",
     );

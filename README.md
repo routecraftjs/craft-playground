@@ -124,10 +124,10 @@ export default craft()
 Don't forget to export it in `index.ts`:
 
 ```typescript
-import helloWorld from "./capabilities/hello-world.js";
+import helloWorldRoute from "./capabilities/hello-world.js";
 import batchUsers from "./capabilities/batch-users.js";
 
-export default [helloWorld, batchUsers];
+export default [helloWorldRoute, batchUsers];
 ```
 
 ### Experiment 3: Filter Data

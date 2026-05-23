@@ -1,5 +1,3 @@
-import type { CraftConfig } from "@routecraft/routecraft";
+import { defineConfig } from "@routecraft/routecraft";
 
-const config: CraftConfig = {};
-
-export default config;
+export const craftConfig = defineConfig({});

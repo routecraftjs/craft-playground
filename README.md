@@ -1,28 +1,28 @@
 <div align="center">
 
-  <img src="https://raw.githubusercontent.com/routecraftjs/routecraft/main/routecraft-sticker.svg" alt="Routecraft" width="300" />
+  <img src="https://raw.githubusercontent.com/routecraftjs/routecraft/main/routecraft.svg" alt="Routecraft" width="120" />
 
-  <p><strong>Give AI access, not control</strong></p>
+  <p><strong>Tools for agents. Or the agent harness itself.</strong></p>
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](https://github.com/routecraftjs/craft-playground/pulls)
 
 </div>
 
-# RouteCraft Playground 🚀
+# Routecraft Playground 🚀
 
-Welcome to the **RouteCraft Playground**! This is a ready-to-run RouteCraft project where you can experiment with building integration capabilities directly in your browser, no installation required.
+Welcome to the **Routecraft Playground**! This is a ready-to-run Routecraft project where you can experiment with building capabilities directly in your browser, no installation required.
 
-> **Runtime:** RouteCraft 0.5.0 ships a Bun-only `craft` CLI and uses `bun test` as the test runner. This playground targets [Bun](https://bun.sh) >= 1.1.0.
+> **Runtime:** Routecraft 0.5.0 ships a Bun-only `craft` CLI and uses `bun test` as the test runner. This playground targets [Bun](https://bun.sh) >= 1.1.0.
 
-## What is RouteCraft?
+## What is Routecraft?
 
-RouteCraft is a TypeScript-first integration framework inspired by Apache Camel. It provides a fluent DSL for building data integration pipelines with:
+Routecraft is a type-safe framework for AI automation. Build the tools an agent uses, or the agent itself, with the same fluent DSL. Compose capabilities from:
 
 - 🔌 **Adapters** - Connect to external systems (HTTP, databases, message queues, etc.)
 - 🔄 **Operations** - Transform, filter, enrich, and route data
 - 📦 **Type Safety** - Full TypeScript support with intelligent type inference
-- 🎯 **Declarative Capabilities** - Express complex integrations as readable code
+- 🎯 **Declarative Capabilities** - Express automations as readable code
 
 ## Getting Started in CodeSandbox
 
@@ -161,8 +161,8 @@ export default craft()
 │   └── hello-world.bun.test.ts     # Example capability tests (bun:test)
 ├── adapters/                       # Custom adapters (optional)
 ├── plugins/                        # Custom plugins (optional)
-├── craft.config.ts                 # RouteCraft configuration (defineConfig)
-├── index.ts                        # RouteCraft main entry
+├── craft.config.ts                 # Routecraft configuration (defineConfig)
+├── index.ts                        # Routecraft main entry
 ├── package.json                    # Dependencies & scripts
 ├── tsconfig.json                   # TypeScript configuration
 └── .prettierrc                     # Formatting configuration
@@ -201,11 +201,11 @@ Operations transform and control data flow:
 - **`choice()`** - Route based on conditions
 - **`split(fn)`** - Break one message into many
 - **`aggregate(options)`** - Combine many messages into one
-- **`error(handler)`** - Recover from failures (route-level or step-level)
+- **`error(handler)`** - Recover from failures (capability-level or step-level)
 
 ### Type Safety
 
-RouteCraft infers types as you build your capability:
+Routecraft infers types as you build your capability:
 
 ```typescript
 craft()
@@ -215,9 +215,9 @@ craft()
   .to(log());
 ```
 
-### Route-level metadata and validation
+### Capability-level metadata and validation
 
-In 0.5.0, discovery metadata and schema validation live on the route builder, so any source adapter inherits them:
+In 0.5.0, discovery metadata and schema validation live on the capability builder, so any source adapter inherits them:
 
 ```typescript
 import { craft, direct, log } from "@routecraft/routecraft";
@@ -236,7 +236,7 @@ export default craft()
 
 ## Testing Your Capabilities
 
-RouteCraft capabilities are tested with `bun:test` and the `@routecraft/testing` package. Check out `capabilities/hello-world.bun.test.ts` for a complete example.
+Routecraft capabilities are tested with `bun:test` and the `@routecraft/testing` package. Check out `capabilities/hello-world.bun.test.ts` for a complete example.
 
 ### Writing Tests
 
@@ -290,7 +290,7 @@ bun run test:coverage
 
 ## What's Next?
 
-Ready to use RouteCraft in a real project? Scaffold one with Bun:
+Ready to use Routecraft in a real project? Scaffold one with Bun:
 
 ```bash
 bun create routecraft@latest my-app
@@ -305,4 +305,4 @@ Apache-2.0
 
 ---
 
-**Happy routing!** 🎉 Edit the code, run it, and see what you can build with RouteCraft!
+**Happy routing!** 🎉 Edit the code, run it, and see what you can build with Routecraft!

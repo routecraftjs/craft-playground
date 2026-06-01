@@ -6,7 +6,9 @@
       "name": "Routecraft Engine",
       "command": "bun run start",
       "runAtStart": true,
-      "preview": null
+      "preview": {
+        "port": 3001
+      }
     }
   }
 }

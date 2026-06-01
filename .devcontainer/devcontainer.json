@@ -6,6 +6,13 @@
   },
   "postCreateCommand": "bun install && bun test",
   "postAttachCommand": "bun run start",
+  "forwardPorts": [3001],
+  "portsAttributes": {
+    "3001": {
+      "label": "Routecraft MCP server",
+      "onAutoForward": "notify"
+    }
+  },
   "customizations": {
     "vscode": {
       "settings": {

@@ -39,7 +39,7 @@ bun run start
 Then run the tests:
 
 ```bash
-bun test
+bun run test
 ```
 
 ## What's in the box
@@ -51,11 +51,15 @@ Each capability lives in `capabilities/` and has its own test. Open them in orde
 | **Hello world**       | `hello-world.ts`     | A source, an HTTP `enrich`, a `transform`, and a `log` destination.                                                 |
 | **Split / aggregate** | `split-aggregate.ts` | Fan one order out into items, price each via a second capability, then aggregate the results into an order summary. |
 | **Choice router**     | `choice-router.ts`   | Content-based routing: send each support ticket down a different branch based on its severity.                      |
-| **MCP tools**         | `mcp-tools.ts`       | Three tools (`greet`, `notes_create`, `notes_list`) exposed over an authenticated HTTP MCP server.                  |
+| **MCP tools**         | `mcp-tools.ts`       | Four tools (`greet`, `notes_create`, `notes_list`, `notes_search`) over an authenticated HTTP MCP server.           |
+| **API sync**          | `api-sync.ts`        | Resilient batch sync: POST each record to an API, dead-letter the bad ones with an `.error()` boundary.             |
+| **Error collector**   | `error-collector.ts` | A capability whose source is the event bus: it listens for failures and appends them to a JSONL log.                |
 
 ## The MCP server
 
-`mcp-tools.ts` turns three capabilities into MCP tools. A capability becomes a tool the moment its source is `mcp()`: the tool name is the route `.id()`, and the `.title()`, `.description()`, and `.input()` schema are surfaced to the client and validated on every call.
+`mcp-tools.ts` turns four capabilities into MCP tools. A capability becomes a tool the moment its source is `mcp()`: the tool name is the route `.id()`, and the `.title()`, `.description()`, and `.input()` schema are surfaced to the client and validated on every call.
+
+The notes tools demonstrate **semantic search**. `notes_create` embeds each note with an in-process model (`enrich(embedding(...))`), and `notes_search` embeds your query and ranks notes by cosine similarity, so "household animals" finds a note about cats and dogs. The embeddings run locally via transformers.js with no API key; the model (a small MiniLM, ~25 MB) downloads on first use and is then cached. Set `EMBEDDING_MODEL=mock:fast` for a zero-download deterministic stub.
 
 The server is configured in `craft.config.ts`:
 
@@ -85,7 +89,7 @@ In the Inspector UI:
 1. Set **Transport Type** to `Streamable HTTP`.
 2. Set **URL** to `http://localhost:3001/mcp` (or your dev box's public URL, see below).
 3. Under **Authentication**, add a header `Authorization` with the value `Bearer <your-token>`.
-4. Click **Connect**, then **List Tools**. You will see `greet`, `notes_create`, and `notes_list`.
+4. Click **Connect**, then **List Tools**. You will see `greet`, `notes_create`, `notes_list`, and `notes_search`.
 
 ### Calling it with curl
 
@@ -124,6 +128,14 @@ The server binds to `0.0.0.0` and reads `PORT`, so cloud dev environments can ex
 
 Use that public `https://...` URL with `/mcp` appended in place of `http://localhost:3001/mcp`. The same bearer token applies.
 
+## Resilience and the event bus
+
+`api-sync.ts` POSTs a batch of records to an API one at a time. One record is deliberately invalid. A route-level `.error()` boundary catches the failure, turns it into a dead-letter result, and lets the rest of the batch finish, so a single bad record never sinks the run.
+
+`error-collector.ts` is a capability whose **source is the event bus** (`event([...])`). It subscribes to failure events from every capability and appends each one to `errors.jsonl`. Start the playground and the bad `api-sync` record shows up there as a structured line. It subscribes only to failure events (and filters out its own) to avoid a feedback loop.
+
+> Routecraft 0.5.0 ships `.error()` as the resilience primitive; `.retry()` and `.timeout()` wrappers are on the roadmap.
+
 ## Project structure
 
 ```
@@ -132,11 +144,13 @@ Use that public `https://...` URL with `/mcp` appended in place of `http://local
 │   ├── hello-world.ts
 │   ├── split-aggregate.ts
 │   ├── choice-router.ts
-│   └── mcp-tools.ts
+│   ├── mcp-tools.ts          # greet, notes_create, notes_list, notes_search
+│   ├── api-sync.ts           # resilient batch sync with .error()
+│   └── error-collector.ts    # event() source -> errors.jsonl
 ├── lib/                      # Shared helpers
 │   ├── env.ts                # Config with safe dev defaults
 │   ├── dev-token.ts          # Mints + prints the demo JWT
-│   └── notes-store.ts        # In-memory store for the notes tools
+│   └── notes-store.ts        # In-memory notes + semantic search
 ├── scripts/
 │   └── print-token.ts        # `bun run token`
 ├── craft.config.ts           # Engine + MCP server configuration
@@ -148,8 +162,8 @@ Use that public `https://...` URL with `/mcp` appended in place of `http://local
 
 - `bun run start` - Run every capability and the MCP server
 - `bun run token` - Print a fresh bearer token for the MCP server
-- `bun test` - Run tests with `bun:test`
-- `bun test --watch` - Run tests in watch mode
+- `bun run test` - Run tests (uses the mock embedding provider, no downloads)
+- `bun run test --watch` - Run tests in watch mode
 - `bun run test:coverage` - Run tests with a coverage report
 - `bun run lint` - Check code quality with ESLint
 - `bun run format` / `bun run format:write` - Check / fix formatting
@@ -165,7 +179,9 @@ Adapters connect capabilities to the outside world:
 - **`http(options)`** - Make HTTP requests (as a source, destination, or `enrich`)
 - **`direct()`** - Send to / receive from other capabilities (request/reply)
 - **`mcp()`** - Expose a capability as an MCP tool (or call a remote MCP server)
-- **`log()` / `noop()`** - Log the body, or discard it
+- **`embedding(model, opts)`** - Turn text into a vector (in-process, no API key)
+- **`event(filter)`** - Source that listens to the engine's own event bus
+- **`jsonl(opts)` / `log()` / `noop()`** - Append JSONL, log the body, or discard it
 
 ### Operations
 
@@ -178,6 +194,7 @@ Operations transform and control flow:
 - **`split()`** - Fan an array body into one message per item
 - **`aggregate()`** - Collect split messages back into one
 - **`tap(adapter)`** - Fire-and-forget side effect (logging, metrics)
+- **`error(handler)`** - Catch a failure and recover (the resilience primitive)
 
 ### Type safety
 

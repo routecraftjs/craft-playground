@@ -1,7 +1,8 @@
 import { craft, noop, log } from "@routecraft/routecraft";
-import { mcp } from "@routecraft/ai";
+import { mcp, embedding } from "@routecraft/ai";
 import { z } from "zod";
-import { createNote, listNotes } from "../lib/notes-store.js";
+import { env } from "../lib/env.js";
+import { createNote, listNotes, searchNotes } from "../lib/notes-store.js";
 
 /**
  * MCP tools exposed over the HTTP transport (configured in craft.config.ts).
@@ -17,8 +18,11 @@ import { createNote, listNotes } from "../lib/notes-store.js";
  * closing `.to(noop())` is just a conventional end of pipeline. The
  * `.tap(log())` after each transform logs the result server-side, which is
  * handy when watching tool calls in the terminal (and is what the tests assert
- * against). Each tool below is intentionally small; together they show a read
- * tool, a write tool, and a pure-function tool.
+ * against).
+ *
+ * The notes tools show off semantic search: `notes_create` embeds each note
+ * with an in-process model (`enrich(embedding(...))`), and `notes_search`
+ * embeds the query and ranks notes by cosine similarity. No API key required.
  */
 
 const GreetInput = z.object({
@@ -60,7 +64,20 @@ export const notesCreate = craft()
   .description("Create a note and store it in memory for this session.")
   .input({ body: CreateNoteInput })
   .from<CreateNoteInput>(mcp())
-  .transform((payload) => createNote(payload))
+  // Embed the note's text so it can be found later by meaning, not keywords.
+  // `enrich` merges the result ({ embedding }) into the body.
+  .enrich(
+    embedding(env.embeddingModel, {
+      using: (ex) => `${ex.body.title}\n${ex.body.body}`,
+    }),
+  )
+  .transform((payload) =>
+    createNote({
+      title: payload.title,
+      body: payload.body,
+      embedding: payload.embedding,
+    }),
+  )
   .tap(log())
   .to(noop());
 
@@ -77,4 +94,37 @@ export const notesList = craft()
   .tap(log())
   .to(noop());
 
-export default [greet, notesCreate, notesList];
+const SearchNotesInput = z.object({
+  query: z
+    .string()
+    .trim()
+    .min(1, { message: "Query is required." })
+    .describe("Natural-language search query."),
+  topK: z
+    .number()
+    .int()
+    .positive()
+    .max(20)
+    .optional()
+    .describe("How many results to return. Default 3."),
+});
+type SearchNotesInput = z.infer<typeof SearchNotesInput>;
+
+export const notesSearch = craft()
+  .id("notes_search")
+  .title("Search notes")
+  .description("Find notes by meaning using semantic (vector) similarity.")
+  .input({ body: SearchNotesInput })
+  .from<SearchNotesInput>(mcp())
+  .enrich(
+    embedding(env.embeddingModel, {
+      using: (ex) => ex.body.query,
+    }),
+  )
+  .transform((payload) => ({
+    results: searchNotes(payload.embedding, payload.topK ?? 3),
+  }))
+  .tap(log())
+  .to(noop());
+
+export default [greet, notesCreate, notesList, notesSearch];

@@ -1,5 +1,5 @@
 import { defineConfig } from "@routecraft/routecraft";
-import { mcpPlugin, jwt } from "@routecraft/ai";
+import { mcpPlugin, jwt, embeddingPlugin } from "@routecraft/ai";
 import { env } from "./lib/env.js";
 import pkg from "./package.json" with { type: "json" };
 
@@ -27,5 +27,9 @@ export const craftConfig = defineConfig({
         audience: env.jwtAudience,
       }),
     }),
+    // Embedding providers for the semantic notes search. `huggingface` runs an
+    // in-process model (transformers.js, no API key); `mock` is a deterministic
+    // zero-download stub used by tests and available via EMBEDDING_MODEL.
+    embeddingPlugin({ providers: { huggingface: {}, mock: {} } }),
   ],
 });

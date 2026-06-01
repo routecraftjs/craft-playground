@@ -34,6 +34,18 @@ export const env = {
    */
   mcpHost: process.env["MCP_HOST"] ?? "0.0.0.0",
 
+  /**
+   * Embedding model used by the semantic notes search, as "provider:model".
+   * Defaults to an in-process HuggingFace model (transformers.js, no API key).
+   * The model downloads on first use and is cached under node_modules.
+   * Set EMBEDDING_MODEL="mock:fast" for a zero-download deterministic stub.
+   */
+  embeddingModel:
+    process.env["EMBEDDING_MODEL"] ?? "huggingface:all-MiniLM-L6-v2",
+
+  /** Where the error-collector writes failure events as JSONL. */
+  errorLogPath: process.env["ERROR_LOG_PATH"] ?? "errors.jsonl",
+
   /** True when no JWT_SECRET was supplied, so we can warn loudly at startup. */
   usingDefaultSecret: !process.env["JWT_SECRET"],
 } as const;

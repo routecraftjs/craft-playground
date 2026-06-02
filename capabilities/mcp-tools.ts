@@ -105,7 +105,7 @@ const SearchNotesInput = z.object({
     .int()
     .positive()
     .max(20)
-    .optional()
+    .default(3)
     .describe("How many results to return. Default 3."),
 });
 type SearchNotesInput = z.infer<typeof SearchNotesInput>;
@@ -122,7 +122,7 @@ export const notesSearch = craft()
     }),
   )
   .transform((payload) => ({
-    results: searchNotes(payload.embedding, payload.topK ?? 3),
+    results: searchNotes(payload.embedding, payload.topK),
   }))
   .tap(log())
   .to(noop());

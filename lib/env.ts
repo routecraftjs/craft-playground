@@ -25,9 +25,10 @@ export const env = {
 
   /**
    * Port the MCP HTTP server binds to. CodeSandbox and most dev boxes expose a
-   * preview URL for whatever port you bind, so PORT is honoured first.
+   * preview URL for whatever port you bind, so PORT is honoured before the
+   * default.
    */
-  mcpPort: Number(process.env["PORT"] ?? process.env["MCP_PORT"] ?? 3001),
+  mcpPort: Number(process.env["PORT"] ?? 3001),
   /**
    * Host to bind to. Defaults to 0.0.0.0 so the dev box can expose the server
    * publicly. Bind to 127.0.0.1 if you only want local access.

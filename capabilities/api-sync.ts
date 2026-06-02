@@ -41,9 +41,12 @@ export default craft()
     ]),
   )
   .split()
+  // `.schema()` enforces the structural shape of each item. The transform below
+  // adds a business rule (a real email) on top: throwing here is what exercises
+  // the `.error()` boundary, so the bad record is dead-lettered rather than
+  // rejected at the schema. The two layers are deliberate, not redundant.
   .schema(ContactSchema)
   .transform((contact) => {
-    // A cheap validation that throws for the poison record.
     if (!contact.email.includes("@")) {
       throw new Error(`invalid email for ${contact.name}: ${contact.email}`);
     }

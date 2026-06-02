@@ -38,6 +38,14 @@ function toPublic(note: StoredNote): Note {
 
 /** Cosine similarity between two equal-length vectors. */
 function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length) {
+    // Vectors of different lengths mean the notes were embedded with a
+    // different model than the query (for example EMBEDDING_MODEL changed
+    // mid-session). The score would be meaningless, so fail loudly.
+    throw new Error(
+      `embedding dimension mismatch: query ${a.length} vs note ${b.length}`,
+    );
+  }
   let dot = 0;
   let magA = 0;
   let magB = 0;

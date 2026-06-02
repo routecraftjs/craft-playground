@@ -32,4 +32,26 @@ export const craftConfig = defineConfig({
     // zero-download stub used by tests and available via EMBEDDING_MODEL.
     embeddingPlugin({ providers: { huggingface: {}, mock: {} } }),
   ],
+  // Mail account for the opt-in mail demo (`bun run mail-demo`). Points at the
+  // local GreenMail test server; harmless for the default run since no default
+  // capability uses mail.
+  mail: {
+    accounts: {
+      default: {
+        imap: {
+          host: env.mail.host,
+          port: env.mail.imapPort,
+          secure: false,
+          auth: { user: env.mail.user, pass: env.mail.pass },
+        },
+        smtp: {
+          host: env.mail.host,
+          port: env.mail.smtpPort,
+          secure: false,
+          auth: { user: env.mail.user, pass: env.mail.pass },
+          from: env.mail.from,
+        },
+      },
+    },
+  },
 });

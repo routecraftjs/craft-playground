@@ -9,3 +9,6 @@ dist/
 
 # Dead-letter log written by the error-collector capability
 errors.jsonl
+
+# GreenMail jar downloaded on demand by the mail demo
+.greenmail/

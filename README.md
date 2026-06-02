@@ -134,7 +134,45 @@ Use that public `https://...` URL with `/mcp` appended in place of `http://local
 
 > Routecraft 0.5.0 ships `.error()` as the resilience primitive; `.retry()` and `.timeout()` wrappers are on the roadmap.
 
+## Mail demo (local SMTP + IMAP)
+
+The `mail()` adapter reads mail over IMAP and sends over SMTP. To demo it with no real inbox, there is an opt-in loop that runs against a throwaway local mail server:
+
+```bash
+bun run mail-demo
+```
+
+This starts [GreenMail](https://greenmail-mail-test.github.io/greenmail/) (a single Java jar, downloaded once into `.greenmail/`) on localhost, then runs two capabilities from `capabilities/mail-demo.ts`:
+
+- **`mail-sender`** posts a message to the local server every few seconds (`timer()` -> SMTP).
+- **`mail-reader`** watches the inbox and processes each new message (IMAP -> `transform` -> log).
+
+Watch the terminal for the `Sending mail` / `Received mail` lines, or open the GreenMail web UI at `http://localhost:8080`. Press Ctrl+C to stop both. The reader uses poll mode (`pollIntervalMs`) rather than IMAP IDLE, which is the robust choice against lightweight test servers.
+
+> This demo needs a Java runtime (for GreenMail). It is kept separate from `bun run start` so the core playground stays dependency-light. Point `MAIL_*` env vars at any real IMAP/SMTP server to run the same capabilities against it.
+
 ## Project structure
+
+```
+.
+├── capabilities/             # Your capabilities, each with a test
+│   ├── hello-world.ts
+│   ├── mcp-tools.ts          # greet, notes_create, notes_list, notes_search
+│   ├── api-sync.ts           # resilient batch sync with .error()
+│   ├── error-collector.ts    # event() source -> errors.jsonl
+│   └── mail-demo.ts          # opt-in: timer -> SMTP, IMAP -> log
+├── lib/                      # Shared helpers
+│   ├── env.ts                # Config with safe dev defaults
+│   ├── dev-token.ts          # Mints + prints the demo JWT
+│   └── notes-store.ts        # In-memory notes + semantic search
+├── scripts/
+│   ├── print-token.ts        # `bun run token`
+│   └── mail-demo.ts          # `bun run mail-demo` (starts GreenMail)
+├── craft.config.ts           # Engine + MCP server configuration
+├── index.ts                  # Registers the default capabilities
+├── mail-demo.ts              # Entry for the opt-in mail demo
+└── .env.example              # Copy to .env to override defaults
+```
 
 ```
 .
@@ -156,7 +194,8 @@ Use that public `https://...` URL with `/mcp` appended in place of `http://local
 
 ## Available scripts
 
-- `bun run start` - Run every capability and the MCP server
+- `bun run start` - Run the default capabilities and the MCP server
+- `bun run mail-demo` - Start a local mail server and run the mail loop (needs Java)
 - `bun run token` - Print a fresh bearer token for the MCP server
 - `bun run test` - Run tests (uses the mock embedding provider, no downloads)
 - `bun run test --watch` - Run tests in watch mode

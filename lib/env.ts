@@ -46,6 +46,21 @@ export const env = {
   /** Where the error-collector writes failure events as JSONL. */
   errorLogPath: process.env["ERROR_LOG_PATH"] ?? "errors.jsonl",
 
+  /**
+   * Local mail server settings for the opt-in mail demo (`bun run mail-demo`).
+   * Defaults point at the GreenMail test server the demo script starts on
+   * localhost (plaintext SMTP/IMAP, auth disabled). GreenMail keys mailboxes by
+   * the full email address, so the IMAP login user and the recipient match.
+   */
+  mail: {
+    host: process.env["MAIL_HOST"] ?? "127.0.0.1",
+    imapPort: Number(process.env["MAIL_IMAP_PORT"] ?? 3143),
+    smtpPort: Number(process.env["MAIL_SMTP_PORT"] ?? 3025),
+    user: process.env["MAIL_USER"] ?? "demo@localhost",
+    pass: process.env["MAIL_PASS"] ?? "demo",
+    from: process.env["MAIL_FROM"] ?? "robot@playground.local",
+  },
+
   /** True when no JWT_SECRET was supplied, so we can warn loudly at startup. */
   usingDefaultSecret: !process.env["JWT_SECRET"],
 } as const;

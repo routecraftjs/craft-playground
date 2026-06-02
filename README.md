@@ -34,7 +34,7 @@ bun run start
 `bun run start` boots the engine and runs everything in `index.ts`. You will see:
 
 1. An **MCP server banner** with a ready-to-use bearer token and the Inspector command (more below).
-2. The **demo capabilities** running once and logging their output: a priced order summary, routed support tickets, and a greeting fetched from a public API.
+2. The **demo capabilities** running once and logging their output: a greeting fetched from a public API, and a batch of records synced to an API (with one deliberately bad record dead-lettered to `errors.jsonl`).
 
 Then run the tests:
 
@@ -44,16 +44,14 @@ bun run test
 
 ## What's in the box
 
-Each capability lives in `capabilities/` and has its own test. Open them in order; they build on each other.
+Each capability lives in `capabilities/` and has its own test.
 
-| Capability            | File                 | Shows                                                                                                               |
-| --------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| **Hello world**       | `hello-world.ts`     | A source, an HTTP `enrich`, a `transform`, and a `log` destination.                                                 |
-| **Split / aggregate** | `split-aggregate.ts` | Fan one order out into items, price each via a second capability, then aggregate the results into an order summary. |
-| **Choice router**     | `choice-router.ts`   | Content-based routing: send each support ticket down a different branch based on its severity.                      |
-| **MCP tools**         | `mcp-tools.ts`       | Four tools (`greet`, `notes_create`, `notes_list`, `notes_search`) over an authenticated HTTP MCP server.           |
-| **API sync**          | `api-sync.ts`        | Resilient batch sync: POST each record to an API, dead-letter the bad ones with an `.error()` boundary.             |
-| **Error collector**   | `error-collector.ts` | A capability whose source is the event bus: it listens for failures and appends them to a JSONL log.                |
+| Capability          | File                 | Shows                                                                                                     |
+| ------------------- | -------------------- | --------------------------------------------------------------------------------------------------------- |
+| **Hello world**     | `hello-world.ts`     | A source, an HTTP `enrich`, a `transform`, and a `log` destination.                                       |
+| **MCP tools**       | `mcp-tools.ts`       | Four tools (`greet`, `notes_create`, `notes_list`, `notes_search`) over an authenticated HTTP MCP server. |
+| **API sync**        | `api-sync.ts`        | Resilient batch sync: POST each record to an API, dead-letter the bad ones with an `.error()` boundary.   |
+| **Error collector** | `error-collector.ts` | A capability whose source is the event bus: it listens for failures and appends them to a JSONL log.      |
 
 ## The MCP server
 
@@ -142,8 +140,6 @@ Use that public `https://...` URL with `/mcp` appended in place of `http://local
 .
 ├── capabilities/             # Your capabilities, each with a test
 │   ├── hello-world.ts
-│   ├── split-aggregate.ts
-│   ├── choice-router.ts
 │   ├── mcp-tools.ts          # greet, notes_create, notes_list, notes_search
 │   ├── api-sync.ts           # resilient batch sync with .error()
 │   └── error-collector.ts    # event() source -> errors.jsonl

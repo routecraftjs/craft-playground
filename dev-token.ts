@@ -36,6 +36,28 @@ export function mintDevToken(ttlSeconds = 60 * 60 * 24 * 7): string {
 }
 
 /**
+ * Public base URL (scheme + host, no path) for a forwarded port on a cloud dev
+ * box, or undefined when running locally. Used for both the MCP server and the
+ * MCP Inspector UI.
+ */
+export function publicBaseUrl(port: number): string | undefined {
+  // CodeSandbox sets CODESANDBOX_HOST like "abc123-$PORT.csb.app".
+  const codesandbox = process.env["CODESANDBOX_HOST"];
+  if (codesandbox) {
+    return `https://${codesandbox.replace("$PORT", String(port))}`;
+  }
+
+  // GitHub Codespaces forwards ports under a known domain.
+  const codespace = process.env["CODESPACE_NAME"];
+  const domain = process.env["GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN"];
+  if (codespace && domain) {
+    return `https://${codespace}-${port}.${domain}`;
+  }
+
+  return undefined;
+}
+
+/**
  * The public URL of the MCP server, derived from the dev box's environment, or
  * undefined when running locally. Set MCP_PUBLIC_URL to override.
  */
@@ -43,20 +65,8 @@ export function publicMcpUrl(port: number): string | undefined {
   const override = process.env["MCP_PUBLIC_URL"];
   if (override) return `${override.replace(/\/+$/, "")}/mcp`;
 
-  // CodeSandbox sets CODESANDBOX_HOST like "abc123-$PORT.csb.app".
-  const codesandbox = process.env["CODESANDBOX_HOST"];
-  if (codesandbox) {
-    return `https://${codesandbox.replace("$PORT", String(port))}/mcp`;
-  }
-
-  // GitHub Codespaces forwards ports under a known domain.
-  const codespace = process.env["CODESPACE_NAME"];
-  const domain = process.env["GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN"];
-  if (codespace && domain) {
-    return `https://${codespace}-${port}.${domain}/mcp`;
-  }
-
-  return undefined;
+  const base = publicBaseUrl(port);
+  return base ? `${base}/mcp` : undefined;
 }
 
 /**

@@ -94,15 +94,15 @@ npx @modelcontextprotocol/inspector --cli \
 **UI (interactive):**
 
 ```bash
-bun run inspect   # = HOST=0.0.0.0 bunx @modelcontextprotocol/inspector
+bun run inspect
 ```
 
-It serves a web UI on port `6274`, which the dev box forwards; open that forwarded URL (the terminal prints it with a one-time token). Then:
+This serves the Inspector UI on port `6274` and prints a ready URL with the **server URL** (your MCP server on port `3001`, not the Inspector's own `6274`) and **transport** pre-filled. Open it, then set the two things the Inspector cannot accept at launch:
 
-1. Set **Transport Type** to `Streamable HTTP`.
-2. Use a **Direct** connection (not the Proxy) to the MCP **URL** with the bearer token in an `Authorization: Bearer <token>` header. Direct works because the server allows browser origins (`cors: { origin: "*" }`); the proxy mode would instead require forwarding the Inspector's own proxy port (`6277`).
-   - In the dev box, point it at the **public** MCP URL (the browser reaches the server over the internet). From the same box's terminal, the **Local URL** works too.
-3. Click **Connect**, then **List Tools**. You will see `greet`, `notes_create`, `notes_list`, and `notes_search`.
+1. **Connection Type -> Direct** (not Via Proxy). Direct works because the server allows browser origins (`cors: { origin: "*" }`); Proxy mode would instead need the Inspector's own proxy port (`6277`) forwarded.
+2. **Authentication -> `Authorization: Bearer <token>`**, using a token from `bun run token`.
+
+Then **Connect** and **List Tools**: `greet`, `notes_create`, `notes_list`, `notes_search`. (On a dev box the pre-filled server URL is the public one, which the browser reaches; the bearer header and the Direct toggle are the only manual steps.)
 
 ### Calling it with curl
 

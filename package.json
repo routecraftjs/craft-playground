@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "craft --log-level info run index.ts",
-    "inspect": "HOST=0.0.0.0 bunx @modelcontextprotocol/inspector",
+    "inspect": "HOST=0.0.0.0 MCP_AUTO_OPEN_ENABLED=false bunx @modelcontextprotocol/inspector",
     "token": "bun scripts/print-token.ts",
     "lint": "eslint .",
     "format": "prettier . --check --ignore-unknown",

@@ -9,6 +9,14 @@
       "preview": {
         "port": 3001
       }
+    },
+    "mcp-inspector": {
+      "name": "MCP Inspector",
+      "command": "bun run inspect",
+      "runAtStart": true,
+      "preview": {
+        "port": 6274
+      }
     }
   }
 }

@@ -78,7 +78,7 @@ The token is signed with `JWT_SECRET` and carries the issuer and audience the se
 
 ### Calling it with the MCP Inspector
 
-Run the [MCP Inspector](https://github.com/modelcontextprotocol/inspector) in two ways. Only the server auto-starts; the Inspector is on-demand.
+On a dev box the Inspector UI **auto-starts** alongside the server (the `mcp-inspector` task on CodeSandbox, a parallel `postAttachCommand` in the devcontainer) on port `6274`. Open that forwarded port; its terminal/task output prints the URL with a one-time access token. You can also run it yourself two ways:
 
 **CLI (headless, the quickest check, works straight from a dev-box terminal):**
 

@@ -5,7 +5,10 @@
     "ghcr.io/devcontainers/features/common-utils:2": {}
   },
   "postCreateCommand": "bun install && bun test",
-  "postAttachCommand": "bun run start",
+  "postAttachCommand": {
+    "server": "bun run start",
+    "inspector": "bun run inspect"
+  },
   "forwardPorts": [3001, 6274],
   "portsAttributes": {
     "3001": {

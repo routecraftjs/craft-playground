@@ -123,10 +123,8 @@ The server binds to `0.0.0.0` and reads `PORT`, so cloud dev environments can ex
 
 - **CodeSandbox** publishes the preview URL for port `3001` publicly, so the printed URL works as-is.
 - **GitHub Codespaces** forwards port `3001` **privately** by default. A request to the public URL hits GitHub's tunnel auth first and returns `401 www-authenticate: tunnel` before reaching the server. Make the port public to use the URL externally:
-
-  ```bash
-  gh codespace ports visibility 3001:public -c "$CODESPACE_NAME"
-  ```
+  - **PORTS** panel -> right-click port `3001` -> **Port Visibility** -> **Public** (always available, no install), or
+  - with the GitHub CLI (note: not installed in the `oven/bun:1` image by default): `gh codespace ports visibility 3001:public -c "$CODESPACE_NAME"`.
 
   The devcontainer also requests `"visibility": "public"` for the port, but Codespaces (and org policy) may not honour that automatically. Alternatively, call the **Local URL** from a terminal inside the Codespace, which bypasses the tunnel entirely.
 

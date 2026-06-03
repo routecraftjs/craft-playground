@@ -87,10 +87,10 @@ export function printMcpBanner(): void {
   if (publicUrl && inCodespaces) {
     urlRows.push(
       "",
-      ` Codespaces forwards port ${env.mcpPort} privately, so the Public URL needs one step:`,
-      `   gh codespace ports visibility ${env.mcpPort}:public -c ${codespaceName}`,
-      "   (or: PORTS panel -> right-click the port -> Port Visibility -> Public)",
-      " Otherwise call the Local URL from a terminal inside the Codespace.",
+      ` Codespaces forwards port ${env.mcpPort} privately. To reach the Public URL, make it public:`,
+      `   PORTS panel -> right-click port ${env.mcpPort} -> Port Visibility -> Public`,
+      `   (or, if you have the gh CLI: gh codespace ports visibility ${env.mcpPort}:public -c ${codespaceName})`,
+      " Or skip that and call the Local URL from a terminal inside the Codespace.",
     );
   }
 

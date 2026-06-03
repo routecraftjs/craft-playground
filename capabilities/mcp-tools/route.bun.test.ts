@@ -6,7 +6,7 @@ import {
   testContext,
   type TestContext,
 } from "@routecraft/testing";
-import { greet, notesCreate, notesList, notesSearch } from "./mcp-tools.js";
+import { greet, notesCreate, notesList, notesSearch } from "./route.js";
 
 // The notes tools embed text. Tests run with EMBEDDING_MODEL=mock:test (set in
 // the test script), a deterministic, no-download provider. Register it here.

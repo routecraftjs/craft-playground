@@ -1,8 +1,8 @@
 import { describe, it, expect, afterEach, beforeEach } from "bun:test";
 import { craft, simple, noop } from "@routecraft/routecraft";
 import { testContext, type TestContext } from "@routecraft/testing";
-import { env } from "../lib/env.js";
-import collector from "./error-collector.js";
+import { env } from "../../env.js";
+import collector from "./route.js";
 
 // A route that always fails, to generate a failure event for the collector.
 const failing = craft()

@@ -1,5 +1,5 @@
 import { craft, event, jsonl } from "@routecraft/routecraft";
-import { env } from "../lib/env.js";
+import { env } from "../../env.js";
 
 /**
  * A capability whose SOURCE is the event bus itself. It listens for failure

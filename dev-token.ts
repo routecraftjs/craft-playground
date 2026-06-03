@@ -36,24 +36,55 @@ export function mintDevToken(ttlSeconds = 60 * 60 * 24 * 7): string {
 }
 
 /**
+ * The public URL of the MCP server, derived from the dev box's environment, or
+ * undefined when running locally. Set MCP_PUBLIC_URL to override.
+ */
+export function publicMcpUrl(port: number): string | undefined {
+  const override = process.env["MCP_PUBLIC_URL"];
+  if (override) return `${override.replace(/\/+$/, "")}/mcp`;
+
+  // CodeSandbox sets CODESANDBOX_HOST like "abc123-$PORT.csb.app".
+  const codesandbox = process.env["CODESANDBOX_HOST"];
+  if (codesandbox) {
+    return `https://${codesandbox.replace("$PORT", String(port))}/mcp`;
+  }
+
+  // GitHub Codespaces forwards ports under a known domain.
+  const codespace = process.env["CODESPACE_NAME"];
+  const domain = process.env["GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN"];
+  if (codespace && domain) {
+    return `https://${codespace}-${port}.${domain}/mcp`;
+  }
+
+  return undefined;
+}
+
+/**
  * Print a startup banner with everything you need to call the MCP server:
- * the local URL, a ready-to-paste bearer token, and the MCP Inspector command.
- *
- * On a dev box (CodeSandbox, Codespaces) the public preview URL replaces
- * `localhost`; the path and the token are identical.
+ * the URL (public, when running on a dev box), a ready-to-paste bearer token,
+ * and the MCP Inspector command.
  */
 export function printMcpBanner(): void {
   const token = mintDevToken();
   const localUrl = `http://localhost:${env.mcpPort}/mcp`;
+  const publicUrl = publicMcpUrl(env.mcpPort);
+  // The URL to connect from outside the box: public if we can derive it.
+  const connectUrl = publicUrl ?? localUrl;
   const line = "=".repeat(72);
+
+  const urlRows = publicUrl
+    ? [` Public URL:  ${publicUrl}`, ` Local URL:   ${localUrl}`]
+    : [
+        ` Local URL:   ${localUrl}`,
+        `              (on a dev box, set MCP_PUBLIC_URL or use the preview URL for port ${env.mcpPort})`,
+      ];
 
   const rows = [
     "",
     line,
     " Routecraft Playground - MCP server is starting",
     line,
-    ` Local URL:   ${localUrl}`,
-    `              (on a dev box, use the public preview URL for port ${env.mcpPort})`,
+    ...urlRows,
     "",
     " Bearer token (valid for 7 days, regenerated each startup):",
     "",
@@ -63,7 +94,7 @@ export function printMcpBanner(): void {
     "",
     "   npx @modelcontextprotocol/inspector",
     "",
-    `   then connect to ${localUrl} with transport "Streamable HTTP"`,
+    `   then connect to ${connectUrl} with transport "Streamable HTTP"`,
     "   and add header  Authorization: Bearer <token above>",
   ];
 

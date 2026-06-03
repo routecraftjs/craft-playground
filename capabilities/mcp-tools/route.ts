@@ -1,8 +1,8 @@
 import { craft, noop, log } from "@routecraft/routecraft";
 import { mcp, embedding } from "@routecraft/ai";
 import { z } from "zod";
-import { env } from "../lib/env.js";
-import { createNote, listNotes, searchNotes } from "../lib/notes-store.js";
+import { env } from "../../env.js";
+import { createNote, listNotes, searchNotes } from "./notes-store.js";
 
 /**
  * MCP tools exposed over the HTTP transport (configured in craft.config.ts).

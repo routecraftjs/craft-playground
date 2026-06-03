@@ -33,7 +33,7 @@ bun run start
 
 `bun run start` boots the engine and runs everything in `index.ts`. You will see:
 
-1. An **MCP server banner** with a ready-to-use bearer token and the Inspector command (more below).
+1. An **MCP server banner** with the server URL (the public dev-box URL when one is detected), a ready-to-use bearer token, and the Inspector command (more below).
 2. The **demo capabilities** running once and logging their output: a greeting fetched from a public API, and a batch of records synced to an API (with one deliberately bad record dead-lettered to `errors.jsonl`).
 
 Then run the tests:
@@ -46,16 +46,16 @@ bun run test
 
 Each capability lives in `capabilities/` and has its own test.
 
-| Capability          | File                 | Shows                                                                                                     |
-| ------------------- | -------------------- | --------------------------------------------------------------------------------------------------------- |
-| **Hello world**     | `hello-world.ts`     | A source, an HTTP `enrich`, a `transform`, and a `log` destination.                                       |
-| **MCP tools**       | `mcp-tools.ts`       | Four tools (`greet`, `notes_create`, `notes_list`, `notes_search`) over an authenticated HTTP MCP server. |
-| **API sync**        | `api-sync.ts`        | Resilient batch sync: POST each record to an API, dead-letter the bad ones with an `.error()` boundary.   |
-| **Error collector** | `error-collector.ts` | A capability whose source is the event bus: it listens for failures and appends them to a JSONL log.      |
+| Capability          | File                       | Shows                                                                                                     |
+| ------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------- |
+| **Hello world**     | `hello-world/route.ts`     | A source, an HTTP `enrich`, a `transform`, and a `log` destination.                                       |
+| **MCP tools**       | `mcp-tools/route.ts`       | Four tools (`greet`, `notes_create`, `notes_list`, `notes_search`) over an authenticated HTTP MCP server. |
+| **API sync**        | `api-sync/route.ts`        | Resilient batch sync: POST each record to an API, dead-letter the bad ones with an `.error()` boundary.   |
+| **Error collector** | `error-collector/route.ts` | A capability whose source is the event bus: it listens for failures and appends them to a JSONL log.      |
 
 ## The MCP server
 
-`mcp-tools.ts` turns four capabilities into MCP tools. A capability becomes a tool the moment its source is `mcp()`: the tool name is the route `.id()`, and the `.title()`, `.description()`, and `.input()` schema are surfaced to the client and validated on every call.
+`mcp-tools/route.ts` turns four capabilities into MCP tools. A capability becomes a tool the moment its source is `mcp()`: the tool name is the route `.id()`, and the `.title()`, `.description()`, and `.input()` schema are surfaced to the client and validated on every call.
 
 The notes tools demonstrate **semantic search**. `notes_create` embeds each note with an in-process model (`enrich(embedding(...))`), and `notes_search` embeds your query and ranks notes by cosine similarity, so "household animals" finds a note about cats and dogs. The embeddings run locally via transformers.js with no API key; the model (a small MiniLM, ~25 MB) downloads on first use and is then cached. Set `EMBEDDING_MODEL=mock:fast` for a zero-download deterministic stub.
 
@@ -124,34 +124,43 @@ The server binds to `0.0.0.0` and reads `PORT`, so cloud dev environments can ex
 - **CodeSandbox** publishes a preview URL for port `3001` (configured in `.codesandbox/tasks.json`).
 - **GitHub Codespaces / devcontainers** forward port `3001` (configured in `.devcontainer/devcontainer.json`).
 
-Use that public `https://...` URL with `/mcp` appended in place of `http://localhost:3001/mcp`. The same bearer token applies.
+On both, the startup banner detects the public URL (from `CODESANDBOX_HOST` or the Codespaces forwarding domain) and prints it directly, so you can copy it straight into the Inspector. Behind a custom proxy, set `MCP_PUBLIC_URL` to override. The same bearer token applies.
 
 ## Resilience and the event bus
 
-`api-sync.ts` POSTs a batch of records to an API one at a time. One record is deliberately invalid. A route-level `.error()` boundary catches the failure, turns it into a dead-letter result, and lets the rest of the batch finish, so a single bad record never sinks the run.
+`api-sync/route.ts` POSTs a batch of records to an API one at a time. One record is deliberately invalid. A route-level `.error()` boundary catches the failure, turns it into a dead-letter result, and lets the rest of the batch finish, so a single bad record never sinks the run.
 
-`error-collector.ts` is a capability whose **source is the event bus** (`event([...])`). It subscribes to failure events from every capability and appends each one to `errors.jsonl`. Start the playground and the bad `api-sync` record shows up there as a structured line. It subscribes only to failure events (and filters out its own) to avoid a feedback loop.
+`error-collector/route.ts` is a capability whose **source is the event bus** (`event([...])`). It subscribes to failure events from every capability and appends each one to `errors.jsonl`. Start the playground and the bad `api-sync` record shows up there as a structured line. It subscribes only to failure events (and filters out its own) to avoid a feedback loop.
 
 > Routecraft 0.5.0 ships `.error()` as the resilience primitive; `.retry()` and `.timeout()` wrappers are on the roadmap.
 
 ## Project structure
 
+This follows the [recommended Routecraft layout](https://routecraft.dev/docs/introduction/project-structure/): each capability is a folder with a `route.ts` public surface, a colocated test, and a short README. Helpers private to one capability live inside its folder.
+
 ```
 .
-├── capabilities/             # Your capabilities, each with a test
-│   ├── hello-world.ts
-│   ├── mcp-tools.ts          # greet, notes_create, notes_list, notes_search
-│   ├── api-sync.ts           # resilient batch sync with .error()
-│   └── error-collector.ts    # event() source -> errors.jsonl
-├── lib/                      # Shared helpers
-│   ├── env.ts                # Config with safe dev defaults
-│   ├── dev-token.ts          # Mints + prints the demo JWT
-│   └── notes-store.ts        # In-memory notes + semantic search
+├── capabilities/                 # One folder per capability
+│   ├── hello-world/
+│   │   ├── route.ts              # The capability
+│   │   ├── route.bun.test.ts
+│   │   └── README.md
+│   ├── mcp-tools/                # greet, notes_create, notes_list, notes_search
+│   │   ├── route.ts
+│   │   ├── route.bun.test.ts
+│   │   ├── notes-store.ts        # private helper: in-memory notes + cosine search
+│   │   └── README.md
+│   ├── api-sync/                 # resilient batch sync with .error()
+│   │   └── route.ts (+ test, README)
+│   └── error-collector/          # event() source -> errors.jsonl
+│       └── route.ts (+ test, README)
+├── env.ts                        # Shared config with safe dev defaults
+├── dev-token.ts                  # Mints + prints the demo JWT and public URL
 ├── scripts/
-│   └── print-token.ts        # `bun run token`
-├── craft.config.ts           # Engine + MCP server configuration
-├── index.ts                  # Registers every capability
-└── .env.example              # Copy to .env to override defaults
+│   └── print-token.ts            # `bun run token`
+├── craft.config.ts               # Engine + MCP server configuration
+├── index.ts                      # Registers every capability
+└── .env.example                  # Copy to .env to override defaults
 ```
 
 ## Available scripts

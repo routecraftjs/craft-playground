@@ -6,7 +6,7 @@ import {
   testContext,
   type TestContext,
 } from "@routecraft/testing";
-import route from "./api-sync.js";
+import route from "./route.js";
 
 describe("api-sync", () => {
   let t: TestContext;

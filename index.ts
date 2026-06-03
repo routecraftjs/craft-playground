@@ -1,9 +1,9 @@
 export { craftConfig } from "./craft.config.js";
-import helloWorld from "./capabilities/hello-world.js";
-import mcpTools from "./capabilities/mcp-tools.js";
-import apiSync from "./capabilities/api-sync.js";
-import errorCollector from "./capabilities/error-collector.js";
-import { printMcpBanner } from "./lib/dev-token.js";
+import helloWorld from "./capabilities/hello-world/route.js";
+import mcpTools from "./capabilities/mcp-tools/route.js";
+import apiSync from "./capabilities/api-sync/route.js";
+import errorCollector from "./capabilities/error-collector/route.js";
+import { printMcpBanner } from "./dev-token.js";
 
 // Print the MCP server URL, a ready-to-use bearer token, and the Inspector
 // command before the engine starts. Runs once on `bun run start`; tests import

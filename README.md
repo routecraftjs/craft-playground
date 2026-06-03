@@ -78,16 +78,31 @@ The token is signed with `JWT_SECRET` and carries the issuer and audience the se
 
 ### Calling it with the MCP Inspector
 
+Run the [MCP Inspector](https://github.com/modelcontextprotocol/inspector) in two ways. Only the server auto-starts; the Inspector is on-demand.
+
+**CLI (headless, the quickest check, works straight from a dev-box terminal):**
+
 ```bash
-npx @modelcontextprotocol/inspector
+TOKEN=$(bun run --silent token)
+npx @modelcontextprotocol/inspector --cli \
+  --transport http --server-url http://localhost:3001/mcp \
+  --method tools/list --header "Authorization: Bearer $TOKEN"
 ```
 
-In the Inspector UI:
+(The flag is `--transport http`; swap `--method tools/list` for `--method tools/call --tool-name greet --tool-arg user=Jaco` to call a tool.)
+
+**UI (interactive):**
+
+```bash
+bun run inspect   # = HOST=0.0.0.0 bunx @modelcontextprotocol/inspector
+```
+
+It serves a web UI on port `6274`, which the dev box forwards; open that forwarded URL (the terminal prints it with a one-time token). Then:
 
 1. Set **Transport Type** to `Streamable HTTP`.
-2. Set **URL** to `http://localhost:3001/mcp` (or your dev box's public URL, see below).
-3. Under **Authentication**, add a header `Authorization` with the value `Bearer <your-token>`.
-4. Click **Connect**, then **List Tools**. You will see `greet`, `notes_create`, `notes_list`, and `notes_search`.
+2. Use a **Direct** connection (not the Proxy) to the MCP **URL** with the bearer token in an `Authorization: Bearer <token>` header. Direct works because the server allows browser origins (`cors: { origin: "*" }`); the proxy mode would instead require forwarding the Inspector's own proxy port (`6277`).
+   - In the dev box, point it at the **public** MCP URL (the browser reaches the server over the internet). From the same box's terminal, the **Local URL** works too.
+3. Click **Connect**, then **List Tools**. You will see `greet`, `notes_create`, `notes_list`, and `notes_search`.
 
 ### Calling it with curl
 
@@ -168,6 +183,7 @@ This follows the [recommended Routecraft layout](https://routecraft.dev/docs/int
 ## Available scripts
 
 - `bun run start` - Run every capability and the MCP server
+- `bun run inspect` - Launch the MCP Inspector UI (connect with the token)
 - `bun run token` - Print a fresh bearer token for the MCP server
 - `bun run test` - Run tests (uses the mock embedding provider, no downloads)
 - `bun run test --watch` - Run tests in watch mode

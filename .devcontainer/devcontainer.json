@@ -6,12 +6,16 @@
   },
   "postCreateCommand": "bun install && bun test",
   "postAttachCommand": "bun run start",
-  "forwardPorts": [3001],
+  "forwardPorts": [3001, 6274],
   "portsAttributes": {
     "3001": {
       "label": "Routecraft MCP server",
       "onAutoForward": "notify",
       "visibility": "public"
+    },
+    "6274": {
+      "label": "MCP Inspector (bun run inspect)",
+      "onAutoForward": "silent"
     }
   },
   "customizations": {

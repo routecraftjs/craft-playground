@@ -21,6 +21,12 @@ export const craftConfig = defineConfig({
       transport: "http",
       host: env.mcpHost,
       port: env.mcpPort,
+      // Allow any browser origin to reach the server. This is what lets
+      // browser-based MCP clients (the MCP Inspector in "direct" mode, web
+      // Claude) connect from a forwarded dev-box URL. It does not weaken auth:
+      // every request still needs a valid bearer token (the default CORS only
+      // reflected localhost origins, which blocked the Inspector UI).
+      cors: { origin: "*" },
       auth: jwt({
         secret: env.jwtSecret,
         issuer: env.jwtIssuer,

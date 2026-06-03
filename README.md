@@ -11,7 +11,7 @@
 
 # Routecraft Playground 🚀
 
-Welcome to the **Routecraft Playground**! This is a ready-to-run Routecraft project where you can experiment with building capabilities directly in your browser, no installation required.
+A ready-to-run [Routecraft](https://routecraft.dev) project you can open in your browser, with no installation required. It ships with a small tour of real capabilities, including an authenticated MCP server you can call from any MCP client.
 
 > **Runtime:** Routecraft 0.5.0 ships a Bun-only `craft` CLI and uses `bun test` as the test runner. This playground targets [Bun](https://bun.sh) >= 1.1.0.
 
@@ -19,205 +19,221 @@ Welcome to the **Routecraft Playground**! This is a ready-to-run Routecraft proj
 
 Routecraft is a type-safe framework for AI automation. Build the tools an agent uses, or the agent itself, with the same fluent DSL. Compose capabilities from:
 
-- 🔌 **Adapters** - Connect to external systems (HTTP, databases, message queues, etc.)
-- 🔄 **Operations** - Transform, filter, enrich, and route data
+- 🔌 **Adapters** - Connect to external systems (HTTP, databases, MCP, mail, etc.)
+- 🔄 **Operations** - Transform, filter, route, split, and aggregate data
 - 📦 **Type Safety** - Full TypeScript support with intelligent type inference
 - 🎯 **Declarative Capabilities** - Express automations as readable code
 
-## Getting Started in CodeSandbox
-
-### 1. Install Dependencies
-
-CodeSandbox should automatically install dependencies. If not, click the **Install** button or run:
+## Quick start
 
 ```bash
 bun install
-```
-
-### 2. Run Your Capabilities
-
-Execute your capabilities with the `craft` CLI:
-
-```bash
 bun run start
 ```
 
-You should see output in the terminal showing your capability execution!
+`bun run start` boots the engine and runs everything in `index.ts`. You will see:
 
-### 3. Run Tests
+1. An **MCP server banner** with the server URL (the public dev-box URL when one is detected), a ready-to-use bearer token, and the Inspector command (more below).
+2. The **demo capabilities** running once and logging their output: a greeting fetched from a public API, and a batch of records synced to an API (with one deliberately bad record dead-lettered to `errors.jsonl`).
 
-Test your capabilities to ensure they work correctly:
-
-```bash
-bun test
-```
-
-Or run tests in watch mode during development:
+Then run the tests:
 
 ```bash
-bun test --watch
+bun run test
 ```
 
-## Example Capability Explained
+## What's in the box
 
-Check out `capabilities/hello-world.ts` - it demonstrates a complete integration flow:
+Each capability lives in `capabilities/` and has its own test.
 
-```typescript
-import { log, craft, simple, http } from "@routecraft/routecraft";
+| Capability          | File                       | Shows                                                                                                     |
+| ------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------- |
+| **Hello world**     | `hello-world/route.ts`     | A source, an HTTP `enrich`, a `transform`, and a `log` destination.                                       |
+| **MCP tools**       | `mcp-tools/route.ts`       | Four tools (`greet`, `notes_create`, `notes_list`, `notes_search`) over an authenticated HTTP MCP server. |
+| **API sync**        | `api-sync/route.ts`        | Resilient batch sync: POST each record to an API, dead-letter the bad ones with an `.error()` boundary.   |
+| **Error collector** | `error-collector/route.ts` | A capability whose source is the event bus: it listens for failures and appends them to a JSONL log.      |
 
-export default craft()
-  .id("hello-world") // Give your capability a name
-  .from(simple({ userId: 1 })) // Start with simple data
-  .enrich(
-    // Enrich with an external API call (typed input -> output)
-    http<{ userId: number }, { name: string }>({
-      method: "GET",
-      url: (ex) =>
-        `https://jsonplaceholder.typicode.com/users/${ex.body.userId}`,
-    }),
-  )
-  .transform((result) => `Hello, ${result.body.name}!`) // Format the message
-  .to(log()); // Log the result
+## The MCP server
+
+`mcp-tools/route.ts` turns four capabilities into MCP tools. A capability becomes a tool the moment its source is `mcp()`: the tool name is the route `.id()`, and the `.title()`, `.description()`, and `.input()` schema are surfaced to the client and validated on every call.
+
+The notes tools demonstrate **semantic search**. `notes_create` embeds each note with an in-process model (`enrich(embedding(...))`), and `notes_search` embeds your query and ranks notes by cosine similarity, so "household animals" finds a note about cats and dogs. The embeddings run locally via transformers.js with no API key; the model (a small MiniLM, ~25 MB) downloads on first use and is then cached. Set `EMBEDDING_MODEL=mock:fast` for a zero-download deterministic stub.
+
+The server is configured in `craft.config.ts`:
+
+- **Transport:** streamable HTTP, bound to `0.0.0.0:3001` by default (so a cloud dev box can expose it).
+- **Auth:** a JWT bearer token is required on every request (`jwt()` with HS256).
+
+### Getting a token
+
+There is no external identity provider to set up. The playground mints a valid, self-signed token for you and prints it in the startup banner. You can also reprint one at any time:
+
+```bash
+bun run token
 ```
 
-**What's happening?**
+The token is signed with `JWT_SECRET` and carries the issuer and audience the server expects (see `.env.example`). It is valid for 7 days. A fresh one is minted on every startup.
 
-1. 📥 **Input**: Starts with `{ userId: 1 }`
-2. 🌐 **Enrich**: Fetches user data from JSONPlaceholder API (with type safety)
-3. ✨ **Transform**: Formats greeting message using the enriched data
-4. 📝 **Output**: Logs "Hello, [User's Name]!"
+> ⚠️ With no `.env`, the playground uses a built-in demo secret so it works out of the box. **Set `JWT_SECRET` to a real random value before exposing the server to anyone you do not trust.**
 
-## Try These Experiments
+### Calling it with the MCP Inspector
 
-### Experiment 1: Change the User ID
+On a dev box the Inspector UI **auto-starts** alongside the server (the `mcp-inspector` task on CodeSandbox, a parallel `postAttachCommand` in the devcontainer) on port `6274`. Open that forwarded port; its terminal/task output prints the URL with a one-time access token. You can also run it yourself two ways:
 
-Edit the `simple()` adapter in `hello-world.ts`:
+**CLI (headless, the quickest check, works straight from a dev-box terminal):**
 
-```typescript
-.from(simple({ userId: 3 }))  // Try different user IDs (1-10)
+```bash
+TOKEN=$(bun run --silent token)
+npx @modelcontextprotocol/inspector --cli \
+  --transport http --server-url http://localhost:3001/mcp \
+  --method tools/list --header "Authorization: Bearer $TOKEN"
 ```
 
-### Experiment 2: Add Multiple Users
+(The flag is `--transport http`; swap `--method tools/list` for `--method tools/call --tool-name greet --tool-arg user=Jaco` to call a tool.)
 
-Create a batch capability (new file: `capabilities/batch-users.ts`):
+**UI (interactive):**
 
-```typescript
-import { log, craft, simple, http } from "@routecraft/routecraft";
-
-export default craft()
-  .id("batch-users")
-  .from(simple([{ userId: 1 }, { userId: 2 }, { userId: 3 }]))
-  .enrich(
-    http<{ userId: number }, { name: string; email: string }>({
-      method: "GET",
-      url: (ex) =>
-        `https://jsonplaceholder.typicode.com/users/${ex.body.userId}`,
-    }),
-  )
-  .transform((result) => ({
-    name: result.body.name,
-    email: result.body.email,
-  }))
-  .to(log());
+```bash
+bun run inspect
 ```
 
-Don't forget to export it in `index.ts`:
+This serves the Inspector UI on port `6274` and prints a ready URL with the **server URL** (your MCP server on port `3001`, not the Inspector's own `6274`) and **transport** pre-filled. Open it, then set the two things the Inspector cannot accept at launch:
 
-```typescript
-import helloWorldRoute from "./capabilities/hello-world.js";
-import batchUsers from "./capabilities/batch-users.js";
+1. **Connection Type -> Direct** (not Via Proxy). Direct works because the server allows browser origins (`cors: { origin: "*" }`); Proxy mode would instead need the Inspector's own proxy port (`6277`) forwarded.
+2. **Authentication -> `Authorization: Bearer <token>`**, using a token from `bun run token`.
 
-export default [helloWorldRoute, batchUsers];
+Then **Connect** and **List Tools**: `greet`, `notes_create`, `notes_list`, `notes_search`. (On a dev box the pre-filled server URL is the public one, which the browser reaches; the bearer header and the Direct toggle are the only manual steps.)
+
+### Calling it with curl
+
+```bash
+TOKEN=$(bun run --silent token)
+
+# 1. Initialize and capture the session id from the response headers.
+SID=$(curl -sD - -o /dev/null -X POST http://localhost:3001/mcp \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"curl","version":"0"}}}' \
+  | awk -F': ' 'tolower($1)=="mcp-session-id"{print $2}' | tr -d '\r')
+
+# 2. Send the initialized notification.
+curl -s -X POST http://localhost:3001/mcp \
+  -H "Authorization: Bearer $TOKEN" -H "mcp-session-id: $SID" \
+  -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","method":"notifications/initialized"}'
+
+# 3. Call a tool.
+curl -s -X POST http://localhost:3001/mcp \
+  -H "Authorization: Bearer $TOKEN" -H "mcp-session-id: $SID" \
+  -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"greet","arguments":{"user":"Jaco"}}}'
 ```
 
-### Experiment 3: Filter Data
+Requests with no token, or a bad token, get a `401`.
 
-Add filtering to only show certain users:
+### Exposing it from a cloud dev box
 
-```typescript
-import { log, craft, simple, http } from "@routecraft/routecraft";
+The server binds to `0.0.0.0` and reads `PORT`, so cloud dev environments can expose it automatically. The startup banner detects the public URL (from `CODESANDBOX_HOST` or the Codespaces forwarding domain) and prints it directly, ready to paste into the Inspector. Behind a custom proxy, set `MCP_PUBLIC_URL` to override. The same bearer token applies wherever you call it.
 
-export default craft()
-  .id("filtered-users")
-  .from(simple([{ userId: 1 }, { userId: 2 }, { userId: 3 }]))
-  .enrich(
-    http<{ userId: number }, { id: number; name: string }>({
-      method: "GET",
-      url: (ex) =>
-        `https://jsonplaceholder.typicode.com/users/${ex.body.userId}`,
-    }),
-  )
-  .filter((result) => result.body.id <= 2) // Only users with ID 1 or 2
-  .transform((result) => `User: ${result.body.name}`)
-  .to(log());
-```
+- **CodeSandbox** publishes the preview URL for port `3001` publicly, so the printed URL works as-is.
+- **GitHub Codespaces** forwards port `3001` **privately** by default. A request to the public URL hits GitHub's tunnel auth first and returns `401 www-authenticate: tunnel` before reaching the server. Make the port public to use the URL externally:
+  - **PORTS** panel -> right-click port `3001` -> **Port Visibility** -> **Public** (always available, no install), or
+  - with the GitHub CLI (note: not installed in the `oven/bun:1` image by default): `gh codespace ports visibility 3001:public -c "$CODESPACE_NAME"`.
 
-## Project Structure
+  The devcontainer also requests `"visibility": "public"` for the port, but Codespaces (and org policy) may not honour that automatically. Alternatively, call the **Local URL** from a terminal inside the Codespace, which bypasses the tunnel entirely.
+
+## Resilience and the event bus
+
+`api-sync/route.ts` POSTs a batch of records to an API one at a time. One record is deliberately invalid. A route-level `.error()` boundary catches the failure, turns it into a dead-letter result, and lets the rest of the batch finish, so a single bad record never sinks the run.
+
+`error-collector/route.ts` is a capability whose **source is the event bus** (`event([...])`). It subscribes to failure events from every capability and appends each one to `errors.jsonl`. Start the playground and the bad `api-sync` record shows up there as a structured line. It subscribes only to failure events (and filters out its own) to avoid a feedback loop.
+
+> Routecraft 0.5.0 ships `.error()` as the resilience primitive; `.retry()` and `.timeout()` wrappers are on the roadmap.
+
+## Project structure
+
+This follows the [recommended Routecraft layout](https://routecraft.dev/docs/introduction/project-structure/): each capability is a folder with a `route.ts` public surface, a colocated test, and a short README. Helpers private to one capability live inside its folder.
 
 ```
 .
-├── capabilities/                   # Your integration capabilities
-│   ├── hello-world.ts              # Example capability
-│   └── hello-world.bun.test.ts     # Example capability tests (bun:test)
-├── adapters/                       # Custom adapters (optional)
-├── plugins/                        # Custom plugins (optional)
-├── craft.config.ts                 # Routecraft configuration (defineConfig)
-├── index.ts                        # Routecraft main entry
-├── package.json                    # Dependencies & scripts
-├── tsconfig.json                   # TypeScript configuration
-└── .prettierrc                     # Formatting configuration
+├── capabilities/                 # One folder per capability
+│   ├── hello-world/
+│   │   ├── route.ts              # The capability
+│   │   ├── route.bun.test.ts
+│   │   └── README.md
+│   ├── mcp-tools/                # greet, notes_create, notes_list, notes_search
+│   │   ├── route.ts
+│   │   ├── route.bun.test.ts
+│   │   ├── notes-store.ts        # private helper: in-memory notes + cosine search
+│   │   └── README.md
+│   ├── api-sync/                 # resilient batch sync with .error()
+│   │   └── route.ts (+ test, README)
+│   └── error-collector/          # event() source -> errors.jsonl
+│       └── route.ts (+ test, README)
+├── env.ts                        # Shared config with safe dev defaults
+├── dev-token.ts                  # Mints + prints the demo JWT and public URL
+├── scripts/
+│   └── print-token.ts            # `bun run token`
+├── craft.config.ts               # Engine + MCP server configuration
+├── index.ts                      # Registers every capability
+└── .env.example                  # Copy to .env to override defaults
 ```
 
-## Available Scripts
+## Available scripts
 
-- `bun run start` - Run your capabilities with the `craft` CLI
-- `bun test` - Run tests with `bun:test`
-- `bun test --watch` - Run tests in watch mode
-- `bun run test:coverage` - Run tests with coverage report
+- `bun run start` - Run every capability and the MCP server
+- `bun run inspect` - Launch the MCP Inspector UI (connect with the token)
+- `bun run token` - Print a fresh bearer token for the MCP server
+- `bun run test` - Run tests (uses the mock embedding provider, no downloads)
+- `bun run test --watch` - Run tests in watch mode
+- `bun run test:coverage` - Run tests with a coverage report
 - `bun run lint` - Check code quality with ESLint
-- `bun run format` - Check code formatting with Prettier
-- `bun run format:write` - Auto-fix code formatting
+- `bun run format` / `bun run format:write` - Check / fix formatting
 - `bun run typecheck` - Type-check without emitting files
 
-## Key Concepts
+## Key concepts
 
 ### Adapters
 
-Adapters connect your capabilities to external systems:
+Adapters connect capabilities to the outside world:
 
 - **`simple(data)`** - Start with static data
-- **`http(options)`** - Make HTTP requests
-- **`timer(options)`** - Trigger on a schedule
-- **`cron(options)`** - Trigger on a cron expression
-- **`direct()`** - Receive data from other capabilities
+- **`http(options)`** - Make HTTP requests (as a source, destination, or `enrich`)
+- **`direct()`** - Send to / receive from other capabilities (request/reply)
+- **`mcp()`** - Expose a capability as an MCP tool (or call a remote MCP server)
+- **`embedding(model, opts)`** - Turn text into a vector (in-process, no API key)
+- **`event(filter)`** - Source that listens to the engine's own event bus
+- **`jsonl(opts)` / `log()` / `noop()`** - Append JSONL, log the body, or discard it
 
 ### Operations
 
-Operations transform and control data flow:
+Operations transform and control flow:
 
-- **`transform(fn)`** - Modify the message body
-- **`filter(predicate)`** - Skip messages that don't match
-- **`enrich(adapter)`** - Add data from external sources
-- **`choice()`** - Route based on conditions
-- **`split(fn)`** - Break one message into many
-- **`aggregate(options)`** - Combine many messages into one
-- **`error(handler)`** - Recover from failures (capability-level or step-level)
+- **`transform(fn)`** - Replace the message body
+- **`filter(predicate)`** - Drop messages that do not match
+- **`enrich(adapter)`** - Merge data from an external call into the body
+- **`choice(c => ...)`** - Route down a branch with `when()` / `otherwise()`
+- **`split()`** - Fan an array body into one message per item
+- **`aggregate()`** - Collect split messages back into one
+- **`tap(adapter)`** - Fire-and-forget side effect (logging, metrics)
+- **`error(handler)`** - Catch a failure and recover (the resilience primitive)
 
-### Type Safety
+### Type safety
 
-Routecraft infers types as you build your capability:
+Routecraft infers types as you build a capability:
 
 ```typescript
 craft()
-  .from(simple({ count: 1 })) // Body type: { count: number }
-  .transform((ex) => ex.body.count * 2) // Body type: number
-  .transform((n) => `Count: ${n}`) // Body type: string
+  .from(simple({ count: 1 })) // body: { count: number }
+  .transform((ex) => ex.body.count * 2) // body: number
+  .transform((n) => `Count: ${n}`) // body: string
   .to(log());
 ```
 
-### Capability-level metadata and validation
+### Capability metadata and validation
 
-In 0.5.0, discovery metadata and schema validation live on the capability builder, so any source adapter inherits them:
+Discovery metadata and schema validation live on the capability builder, so any source adapter (including `mcp()`) inherits them:
 
 ```typescript
 import { craft, direct, log } from "@routecraft/routecraft";
@@ -229,26 +245,17 @@ export default craft()
   .id("greet")
   .title("Greet user")
   .description("Look up a user by id and return a greeting")
-  .input({ body: Input }) // framework-enforced before the pipeline runs
+  .input({ body: Input }) // enforced before the pipeline runs
   .from(direct())
   .to(log());
 ```
 
-## Testing Your Capabilities
+## Testing
 
-Routecraft capabilities are tested with `bun:test` and the `@routecraft/testing` package. Check out `capabilities/hello-world.bun.test.ts` for a complete example.
-
-### Writing Tests
-
-To test a capability:
-
-1. **Import the capability** and build a test context with `testContext()`
-2. **Mock external dependencies** (like HTTP calls)
-3. **Run the capability** with `t.test()`
-4. **Verify the behavior** with assertions against `t.logger`
+Capabilities are tested with `bun:test` and the `@routecraft/testing` package. Each capability in `capabilities/` has a matching `.bun.test.ts` file. The pattern: mock the source (and any external adapters) with `mockAdapter`, build a `testContext()`, run `t.test()`, then assert against `t.logger`.
 
 ```typescript
-import { describe, test, expect, mock, afterEach } from "bun:test";
+import { describe, test, expect, afterEach } from "bun:test";
 import { testContext, type TestContext } from "@routecraft/testing";
 import capability from "./my-capability.js";
 
@@ -268,27 +275,14 @@ describe("My Capability", () => {
 });
 ```
 
-### Running Tests
-
-```bash
-# Run all tests once
-bun test
-
-# Watch mode for development
-bun test --watch
-
-# Generate coverage report
-bun run test:coverage
-```
-
-## Learn More
+## Learn more
 
 - 📚 **Documentation**: [routecraft.dev](https://routecraft.dev)
-- 🧭 **Migration guide**: [0.4.x to 0.5.0](https://routecraft.dev/docs/migrating/0.4-to-0.5)
+- 🔌 **Expose capabilities as MCP**: [routecraft.dev/docs/advanced/expose-as-mcp](https://routecraft.dev/docs/advanced/expose-as-mcp)
+- 🔐 **Securing capabilities**: [routecraft.dev/docs/advanced/securing-capabilities](https://routecraft.dev/docs/advanced/securing-capabilities)
 - 🐙 **GitHub**: [github.com/routecraftjs/routecraft](https://github.com/routecraftjs/routecraft)
-- 💬 **Issues**: [Report bugs or request features](https://github.com/routecraftjs/routecraft/issues)
 
-## What's Next?
+## What's next?
 
 Ready to use Routecraft in a real project? Scaffold one with Bun:
 
@@ -305,4 +299,4 @@ Apache-2.0
 
 ---
 
-**Happy routing!** 🎉 Edit the code, run it, and see what you can build with Routecraft!
+**Happy routing!** 🎉

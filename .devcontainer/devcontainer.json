@@ -5,7 +5,22 @@
     "ghcr.io/devcontainers/features/common-utils:2": {}
   },
   "postCreateCommand": "bun install && bun test",
-  "postAttachCommand": "bun run start",
+  "postAttachCommand": {
+    "server": "bun run start",
+    "inspector": "bun run inspect"
+  },
+  "forwardPorts": [3001, 6274],
+  "portsAttributes": {
+    "3001": {
+      "label": "Routecraft MCP server",
+      "onAutoForward": "notify",
+      "visibility": "public"
+    },
+    "6274": {
+      "label": "MCP Inspector (bun run inspect)",
+      "onAutoForward": "silent"
+    }
+  },
   "customizations": {
     "vscode": {
       "settings": {
@@ -14,7 +29,7 @@
       }
     },
     "codespaces": {
-      "openFiles": ["README.md", "capabilities/hello-world.ts"]
+      "openFiles": ["README.md", "capabilities/hello-world/route.ts"]
     }
   }
 }

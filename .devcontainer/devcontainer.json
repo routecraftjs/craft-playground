@@ -10,7 +10,8 @@
   "portsAttributes": {
     "3001": {
       "label": "Routecraft MCP server",
-      "onAutoForward": "notify"
+      "onAutoForward": "notify",
+      "visibility": "public"
     }
   },
   "customizations": {
@@ -21,7 +22,7 @@
       }
     },
     "codespaces": {
-      "openFiles": ["README.md", "capabilities/hello-world.ts"]
+      "openFiles": ["README.md", "capabilities/hello-world/route.ts"]
     }
   }
 }

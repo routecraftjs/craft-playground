@@ -119,12 +119,16 @@ Requests with no token, or a bad token, get a `401`.
 
 ### Exposing it from a cloud dev box
 
-The server binds to `0.0.0.0` and reads `PORT`, so cloud dev environments can expose it automatically:
+The server binds to `0.0.0.0` and reads `PORT`, so cloud dev environments can expose it automatically. The startup banner detects the public URL (from `CODESANDBOX_HOST` or the Codespaces forwarding domain) and prints it directly, ready to paste into the Inspector. Behind a custom proxy, set `MCP_PUBLIC_URL` to override. The same bearer token applies wherever you call it.
 
-- **CodeSandbox** publishes a preview URL for port `3001` (configured in `.codesandbox/tasks.json`).
-- **GitHub Codespaces / devcontainers** forward port `3001` (configured in `.devcontainer/devcontainer.json`).
+- **CodeSandbox** publishes the preview URL for port `3001` publicly, so the printed URL works as-is.
+- **GitHub Codespaces** forwards port `3001` **privately** by default. A request to the public URL hits GitHub's tunnel auth first and returns `401 www-authenticate: tunnel` before reaching the server. Make the port public to use the URL externally:
 
-On both, the startup banner detects the public URL (from `CODESANDBOX_HOST` or the Codespaces forwarding domain) and prints it directly, so you can copy it straight into the Inspector. Behind a custom proxy, set `MCP_PUBLIC_URL` to override. The same bearer token applies.
+  ```bash
+  gh codespace ports visibility 3001:public -c "$CODESPACE_NAME"
+  ```
+
+  The devcontainer also requests `"visibility": "public"` for the port, but Codespaces (and org policy) may not honour that automatically. Alternatively, call the **Local URL** from a terminal inside the Codespace, which bypasses the tunnel entirely.
 
 ## Resilience and the event bus
 

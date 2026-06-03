@@ -79,6 +79,18 @@ export function printMcpBanner(): void {
         `              (on a dev box, set MCP_PUBLIC_URL or use the preview URL for port ${env.mcpPort})`,
       ];
 
+  // Codespaces forwards ports privately by default, so the public URL returns
+  // a tunnel 401 until the port is made public. CodeSandbox previews are public
+  // already, so only warn for Codespaces.
+  const inCodespaces =
+    !process.env["MCP_PUBLIC_URL"] && Boolean(process.env["CODESPACE_NAME"]);
+  if (publicUrl && inCodespaces) {
+    urlRows.push(
+      `              (Codespaces forwards port ${env.mcpPort} privately; make it Public to`,
+      `               reach the URL above, or call the Local URL from inside the Codespace)`,
+    );
+  }
+
   const rows = [
     "",
     line,

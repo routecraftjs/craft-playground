@@ -13,7 +13,7 @@
 
 A ready-to-run [Routecraft](https://routecraft.dev) project you can open in your browser, with no installation required. It ships with a small tour of real capabilities, including an authenticated MCP server you can call from any MCP client.
 
-> **Runtime:** Routecraft 0.5.0 ships a Bun-only `craft` CLI and uses `bun test` as the test runner. This playground targets [Bun](https://bun.sh) >= 1.1.0.
+> **Runtime:** the `craft` CLI is Bun-only and the test runner is `bun test`. This playground pins Routecraft 0.6.0 and targets [Bun](https://bun.sh) >= 1.1.0.
 
 ## What is Routecraft?
 
@@ -149,7 +149,7 @@ The server binds to `0.0.0.0` and reads `PORT`, so cloud dev environments can ex
 
 `error-collector/route.ts` is a capability whose **source is the event bus** (`event([...])`). It subscribes to failure events from every capability and appends each one to `errors.jsonl`. Start the playground and the bad `api-sync` record shows up there as a structured line. It subscribes only to failure events (and filters out its own) to avoid a feedback loop.
 
-> Routecraft 0.5.0 ships `.error()` as the resilience primitive; `.retry()` and `.timeout()` wrappers are on the roadmap.
+> `.error()` is one of several resilience wrappers. `.retry()` and `.timeout()` ship alongside it and scope over the steps below them, so a retried attempt re-runs the tail and a timeout bounds each attempt.
 
 ## Project structure
 

@@ -5,14 +5,16 @@ import capabilities from "./route.js";
 describe("Hello World Capability", () => {
   let t: TestContext;
   let fetchMock: ReturnType<typeof mock>;
+  const realFetch = globalThis.fetch;
 
   beforeEach(() => {
-    // Mock globalThis.fetch to prevent real API calls
     fetchMock = mock();
     globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
   });
 
   afterEach(async () => {
+    // bun runs every test file in one process, so a leaked mock reaches them all
+    globalThis.fetch = realFetch;
     if (t) {
       await t.stop();
     }
@@ -39,8 +41,8 @@ describe("Hello World Capability", () => {
       url: "https://jsonplaceholder.typicode.com/users/1",
     });
 
-    // Create context with imported capability and run the full lifecycle (t.logger is a spy)
-    t = await testContext().routes(capabilities).build();
+    // bun:test mocks as the spy factory, so expect(t.logger.info) matchers work
+    t = await testContext({ fn: mock }).routes(capabilities).build();
     await t.test();
 
     // Verify fetch was called with the correct URL

@@ -57,6 +57,24 @@ export function publicBaseUrl(port: number): string | undefined {
   return undefined;
 }
 
+/** Port the MCP Inspector UI serves on (`bun run inspect`). */
+export const INSPECTOR_PORT = 6274;
+
+/**
+ * Browser origins the MCP Inspector UI loads from: loopback, plus the dev
+ * box's public URL for the Inspector port when one is detected. The MCP
+ * server admits browser requests only from exact origins, so these are the
+ * origins craft.config.ts names.
+ */
+export function inspectorOrigins(): string[] {
+  const local = [
+    `http://localhost:${INSPECTOR_PORT}`,
+    `http://127.0.0.1:${INSPECTOR_PORT}`,
+  ];
+  const remote = publicBaseUrl(INSPECTOR_PORT);
+  return remote ? [...local, remote] : local;
+}
+
 /**
  * The public URL of the MCP server, derived from the dev box's environment, or
  * undefined when running locally. Set MCP_PUBLIC_URL to override.
@@ -115,11 +133,11 @@ export function printMcpBanner(): void {
     "",
     `   ${token}`,
     "",
-    " Open it in the MCP Inspector:",
+    " Open it in the MCP Inspector (auto-started on a dev box):",
     "",
-    "   npx @modelcontextprotocol/inspector",
+    "   bun run inspect",
     "",
-    `   then connect to ${connectUrl} with transport "Streamable HTTP"`,
+    `   then connect to ${connectUrl} with Connection Type "Direct"`,
     "   and add header  Authorization: Bearer <token above>",
   ];
 

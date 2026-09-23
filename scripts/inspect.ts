@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { env } from "../env.js";
-import { publicBaseUrl, publicMcpUrl } from "../dev-token.js";
+import { INSPECTOR_PORT, publicBaseUrl, publicMcpUrl } from "../dev-token.js";
 
 // Launch the MCP Inspector UI pre-pointed at this playground's MCP server.
 //
@@ -10,8 +10,6 @@ import { publicBaseUrl, publicMcpUrl } from "../dev-token.js";
 // header are set in the UI. So we print a ready URL with the server URL filled
 // in, plus the two manual steps, then start the Inspector.
 
-const UI_PORT = 6274;
-
 // A fresh token gates the Inspector UI/proxy (it is the only guard on
 // CodeSandbox, where every port gets a public URL).
 const proxyToken = randomBytes(24).toString("hex");
@@ -19,7 +17,8 @@ const proxyToken = randomBytes(24).toString("hex");
 // In Direct mode the browser connects to this URL, so prefer the public one.
 const serverUrl =
   publicMcpUrl(env.mcpPort) ?? `http://localhost:${env.mcpPort}/mcp`;
-const uiBase = publicBaseUrl(UI_PORT) ?? `http://localhost:${UI_PORT}`;
+const uiBase =
+  publicBaseUrl(INSPECTOR_PORT) ?? `http://localhost:${INSPECTOR_PORT}`;
 const uiUrl = `${uiBase}/?MCP_PROXY_AUTH_TOKEN=${proxyToken}&transport=streamable-http&serverUrl=${serverUrl}`;
 
 const line = "=".repeat(72);

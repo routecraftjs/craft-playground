@@ -4,7 +4,7 @@
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {}
   },
-  "postCreateCommand": "bun install && bun test",
+  "postCreateCommand": "bun install && bun run test",
   "postAttachCommand": {
     "server": "bun run start",
     "inspector": "bun run inspect"

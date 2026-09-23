@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from "bun:test";
 import type { Mock } from "bun:test";
-import { http } from "@routecraft/routecraft";
+import { forRoute, http } from "@routecraft/routecraft";
 import {
   mockAdapter,
   testContext,
@@ -32,9 +32,12 @@ describe("api-sync", () => {
 
     let recovered = 0;
     t = await testContext()
-      .on("route:api-sync:error-handler:invoked", () => {
-        recovered += 1;
-      })
+      .on(
+        "route:error-handler:invoked",
+        forRoute("api-sync", () => {
+          recovered += 1;
+        }),
+      )
       .override(httpMock)
       .routes(route)
       .build();

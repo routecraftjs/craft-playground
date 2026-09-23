@@ -21,8 +21,9 @@ import { createNote, listNotes, searchNotes } from "./notes-store.js";
  * against).
  *
  * The notes tools show off semantic search: `notes_create` embeds each note
- * with an in-process model (`enrich(embedding(...), only(...))`), and `notes_search`
- * embeds the query and ranks notes by cosine similarity. No API key required.
+ * with an in-process model (`enrich(embedding(...), only(...))`), and
+ * `notes_search` embeds the query and ranks notes by cosine similarity. No API
+ * key required.
  */
 
 /**
@@ -67,7 +68,7 @@ type CreateNoteInput = z.infer<typeof CreateNoteInput>;
 export const notesCreate = craft()
   .id("notes_create")
   .title("Create note")
-  .description("Create a note and store it in memory for this session.")
+  .description("Create a note and keep it in memory until the server restarts.")
   .input({ body: CreateNoteInput })
   .from<CreateNoteInput>(mcp())
   .enrich(
@@ -92,7 +93,7 @@ type ListNotesInput = z.infer<typeof ListNotesInput>;
 export const notesList = craft()
   .id("notes_list")
   .title("List notes")
-  .description("List every note created in this session.")
+  .description("List every note created since the server started.")
   .input({ body: ListNotesInput })
   .from<ListNotesInput>(mcp())
   .transform(() => ({ notes: listNotes() }))

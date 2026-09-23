@@ -39,8 +39,8 @@ describe("Hello World Capability", () => {
       url: "https://jsonplaceholder.typicode.com/users/1",
     });
 
-    // Create context with imported capability and run the full lifecycle (t.logger is a spy)
-    t = await testContext().routes(capabilities).build();
+    // bun:test mocks as the spy factory, so expect(t.logger.info) matchers work
+    t = await testContext({ fn: mock }).routes(capabilities).build();
     await t.test();
 
     // Verify fetch was called with the correct URL

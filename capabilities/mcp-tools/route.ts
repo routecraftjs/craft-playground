@@ -1,5 +1,5 @@
-import { craft, noop, log } from "@routecraft/routecraft";
-import { mcp, embedding } from "@routecraft/ai";
+import { craft, noop, log, only } from "@routecraft/routecraft";
+import { mcp, embedding, type EmbeddingResult } from "@routecraft/ai";
 import { z } from "zod";
 import { env } from "../../env.js";
 import { createNote, listNotes, searchNotes } from "./notes-store.js";
@@ -21,9 +21,15 @@ import { createNote, listNotes, searchNotes } from "./notes-store.js";
  * against).
  *
  * The notes tools show off semantic search: `notes_create` embeds each note
- * with an in-process model (`enrich(embedding(...))`), and `notes_search`
+ * with an in-process model (`enrich(embedding(...), only(...))`), and `notes_search`
  * embeds the query and ranks notes by cosine similarity. No API key required.
  */
+
+/**
+ * `.enrich()` replaces the body with what it fetches, so this merges the vector
+ * in under `embedding` and keeps the tool input beside it.
+ */
+const keepEmbedding = only((r: EmbeddingResult) => r.embedding, "embedding");
 
 const GreetInput = z.object({
   user: z
@@ -64,12 +70,11 @@ export const notesCreate = craft()
   .description("Create a note and store it in memory for this session.")
   .input({ body: CreateNoteInput })
   .from<CreateNoteInput>(mcp())
-  // Embed the note's text so it can be found later by meaning, not keywords.
-  // `enrich` merges the result ({ embedding }) into the body.
   .enrich(
     embedding(env.embeddingModel, {
       using: (ex) => `${ex.body.title}\n${ex.body.body}`,
     }),
+    keepEmbedding,
   )
   .transform((payload) =>
     createNote({
@@ -120,6 +125,7 @@ export const notesSearch = craft()
     embedding(env.embeddingModel, {
       using: (ex) => ex.body.query,
     }),
+    keepEmbedding,
   )
   .transform((payload) => ({
     results: searchNotes(payload.embedding, payload.topK),

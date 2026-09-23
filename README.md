@@ -13,7 +13,7 @@
 
 A ready-to-run [Routecraft](https://routecraft.dev) project you can open in your browser, with no installation required. It ships with a small tour of real capabilities, including an authenticated MCP server you can call from any MCP client.
 
-> **Runtime:** the `craft` CLI is Bun-only and the test runner is `bun test`. This playground pins Routecraft 0.6.0 and targets [Bun](https://bun.sh) >= 1.1.0.
+> **Runtime:** the `craft` CLI is Bun-only and the test runner is `bun test`. This playground pins Routecraft 0.7.0 and targets [Bun](https://bun.sh) >= 1.1.0.
 
 ## What is Routecraft?
 
@@ -57,12 +57,14 @@ Each capability lives in `capabilities/` and has its own test.
 
 `mcp-tools/route.ts` turns four capabilities into MCP tools. A capability becomes a tool the moment its source is `mcp()`: the tool name is the route `.id()`, and the `.title()`, `.description()`, and `.input()` schema are surfaced to the client and validated on every call.
 
-The notes tools demonstrate **semantic search**. `notes_create` embeds each note with an in-process model (`enrich(embedding(...))`), and `notes_search` embeds your query and ranks notes by cosine similarity, so "household animals" finds a note about cats and dogs. The embeddings run locally via transformers.js with no API key; the model (a small MiniLM, ~25 MB) downloads on first use and is then cached. Set `EMBEDDING_MODEL=mock:fast` for a zero-download deterministic stub.
+The notes tools demonstrate **semantic search**. `notes_create` embeds each note with an in-process model (`enrich(embedding(...), only(...))`), and `notes_search` embeds your query and ranks notes by cosine similarity, so "household animals" finds a note about cats and dogs. The embeddings run locally via transformers.js with no API key; the model (a small MiniLM, ~25 MB) downloads on first use and is then cached. Set `EMBEDDING_MODEL=mock:fast` for a zero-download deterministic stub.
 
 The server is configured in `craft.config.ts`:
 
-- **Transport:** streamable HTTP, bound to `0.0.0.0:3001` by default (so a cloud dev box can expose it).
+- **Listener:** one named server (`servers.default`), bound to `0.0.0.0:3001` by default (so a cloud dev box can expose it), with the MCP endpoint mounted at `/mcp`.
+- **Transport:** stateless streamable HTTP: no `initialize` handshake is required and no session id is issued, so every request stands on its own.
 - **Auth:** a JWT bearer token is required on every request (`jwt()` with HS256).
+- **Browser access:** only the MCP Inspector's origins are admitted (`browserOrigins`), locally and on the dev box's public URL. Clients that send no `Origin` header (curl, the Inspector CLI, desktop MCP clients) are unaffected.
 
 ### Getting a token
 
@@ -99,7 +101,7 @@ bun run inspect
 
 This serves the Inspector UI on port `6274` and prints a ready URL with the **server URL** (your MCP server on port `3001`, not the Inspector's own `6274`) and **transport** pre-filled. Open it, then set the two things the Inspector cannot accept at launch:
 
-1. **Connection Type -> Direct** (not Via Proxy). Direct works because the server allows browser origins (`cors: { origin: "*" }`); Proxy mode would instead need the Inspector's own proxy port (`6277`) forwarded.
+1. **Connection Type -> Direct** (not Via Proxy). Direct works because the server admits the Inspector's origin (`browserOrigins`) and lets it read the responses (`cors`); Proxy mode would instead need the Inspector's own proxy port (`6277`) forwarded.
 2. **Authentication -> `Authorization: Bearer <token>`**, using a token from `bun run token`.
 
 Then **Connect** and **List Tools**: `greet`, `notes_create`, `notes_list`, `notes_search`. (On a dev box the pre-filled server URL is the public one, which the browser reaches; the bearer header and the Direct toggle are the only manual steps.)
@@ -109,26 +111,15 @@ Then **Connect** and **List Tools**: `greet`, `notes_create`, `notes_list`, `not
 ```bash
 TOKEN=$(bun run --silent token)
 
-# 1. Initialize and capture the session id from the response headers.
-SID=$(curl -sD - -o /dev/null -X POST http://localhost:3001/mcp \
+curl -s -X POST http://localhost:3001/mcp \
   -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json, text/event-stream' \
-  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"curl","version":"0"}}}' \
-  | awk -F': ' 'tolower($1)=="mcp-session-id"{print $2}' | tr -d '\r')
-
-# 2. Send the initialized notification.
-curl -s -X POST http://localhost:3001/mcp \
-  -H "Authorization: Bearer $TOKEN" -H "mcp-session-id: $SID" \
-  -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' \
-  -d '{"jsonrpc":"2.0","method":"notifications/initialized"}'
-
-# 3. Call a tool.
-curl -s -X POST http://localhost:3001/mcp \
-  -H "Authorization: Bearer $TOKEN" -H "mcp-session-id: $SID" \
-  -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' \
-  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"greet","arguments":{"user":"Jaco"}}}'
+  -H 'Mcp-Method: tools/call' -H 'Mcp-Name: greet' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"greet","arguments":{"user":"Jaco"},"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{"name":"curl","version":"0"},"io.modelcontextprotocol/clientCapabilities":{}}}}'
 ```
+
+The server speaks the stateless MCP revision 2026-07-28, so one request is the whole conversation: the `_meta` envelope carries the protocol version and client identity that a handshake used to negotiate. Clients that still open with the 2025 `initialize` handshake keep working too.
 
 Requests with no token, or a bad token, get a `401`.
 
@@ -174,6 +165,7 @@ This follows the [recommended Routecraft layout](https://routecraft.dev/docs/int
 ├── env.ts                        # Shared config with safe dev defaults
 ├── dev-token.ts                  # Mints + prints the demo JWT and public URL
 ├── scripts/
+│   ├── inspect.ts                # `bun run inspect`
 │   └── print-token.ts            # `bun run token`
 ├── craft.config.ts               # Engine + MCP server configuration
 ├── index.ts                      # Registers every capability
@@ -212,7 +204,7 @@ Operations transform and control flow:
 
 - **`transform(fn)`** - Replace the message body
 - **`filter(predicate)`** - Drop messages that do not match
-- **`enrich(adapter)`** - Merge data from an external call into the body
+- **`enrich(adapter)`** - Pull in data from an external call; the result replaces the body unless an aggregator such as `only()` merges it in
 - **`choice(c => ...)`** - Route down a branch with `when()` / `otherwise()`
 - **`split()`** - Fan an array body into one message per item
 - **`aggregate()`** - Collect split messages back into one
@@ -226,7 +218,7 @@ Routecraft infers types as you build a capability:
 ```typescript
 craft()
   .from(simple({ count: 1 })) // body: { count: number }
-  .transform((ex) => ex.body.count * 2) // body: number
+  .transform((body) => body.count * 2) // body: number
   .transform((n) => `Count: ${n}`) // body: string
   .to(log());
 ```
@@ -252,10 +244,10 @@ export default craft()
 
 ## Testing
 
-Capabilities are tested with `bun:test` and the `@routecraft/testing` package. Each capability in `capabilities/` has a matching `.bun.test.ts` file. The pattern: mock the source (and any external adapters) with `mockAdapter`, build a `testContext()`, run `t.test()`, then assert against `t.logger`.
+Capabilities are tested with `bun:test` and the `@routecraft/testing` package. Each capability in `capabilities/` has a matching `.bun.test.ts` file. The pattern: mock the source (and any external adapters) with `mockAdapter`, build a `testContext()`, run `t.test()`, then assert against `t.logger`. Pass `{ fn: mock }` from `bun:test` so `t.logger` is built from bun mocks and works with matchers such as `toHaveBeenCalled()`.
 
 ```typescript
-import { describe, test, expect, afterEach } from "bun:test";
+import { describe, test, expect, afterEach, mock } from "bun:test";
 import { testContext, type TestContext } from "@routecraft/testing";
 import capability from "./my-capability.js";
 
@@ -267,7 +259,7 @@ describe("My Capability", () => {
   });
 
   test("processes data correctly", async () => {
-    t = await testContext().routes(capability).build();
+    t = await testContext({ fn: mock }).routes(capability).build();
     await t.test();
 
     expect(t.logger.info).toHaveBeenCalled();
@@ -287,7 +279,7 @@ describe("My Capability", () => {
 Ready to use Routecraft in a real project? Scaffold one with Bun:
 
 ```bash
-bun create routecraft@latest my-app
+bunx create-routecraft my-app
 cd my-app
 bun install
 bun run start

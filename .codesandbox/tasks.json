@@ -1,6 +1,6 @@
 {
   "$schema": "https://codesandbox.io/schemas/tasks.json",
-  "setupTasks": ["bun install", "bun test"],
+  "setupTasks": ["bun install", "bun run test"],
   "tasks": {
     "run-framework": {
       "name": "Routecraft Engine",

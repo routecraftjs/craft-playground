@@ -1,4 +1,5 @@
-import { craft, simple, http, log, noop } from "@routecraft/routecraft";
+import { craft, simple, http, log, noop, only } from "@routecraft/routecraft";
+import type { HttpResult } from "@routecraft/routecraft";
 import { z } from "zod";
 
 /**
@@ -11,9 +12,13 @@ import { z } from "zod";
  * also emitted as an event, which the error-collector capability records to a
  * JSONL file.
  *
- * Note: Routecraft 0.5.0 ships `.error()` as the resilience primitive;
- * `.retry()` / `.timeout()` wrappers are on the roadmap. When they land this is
- * where a `.retry()` around the HTTP call would go.
+ * `.error()` is one of several resilience wrappers; `.retry()` and `.timeout()`
+ * ship beside it and scope over the steps below them.
+ *
+ * The item schema enforces each record's structure; the transform adds a
+ * business rule (a real email) on top. Throwing there is what exercises the
+ * `.error()` boundary, so the bad record is dead-lettered rather than rejected
+ * at the schema. The two layers are deliberate, not redundant.
  */
 
 const ContactSchema = z.object({
@@ -24,9 +29,6 @@ type Contact = z.infer<typeof ContactSchema>;
 
 export default craft()
   .id("api-sync")
-  // Route-level error boundary: recover a failed record into a dead-letter
-  // result so the rest of the batch still syncs. Returning a value ends this
-  // exchange cleanly (it does not continue to the HTTP step).
   .error((err, ex) => ({
     status: "dead-letter" as const,
     reason: err instanceof Error ? err.message : String(err),
@@ -41,10 +43,6 @@ export default craft()
     ]),
   )
   .split()
-  // `.schema()` enforces the structural shape of each item. The transform below
-  // adds a business rule (a real email) on top: throwing here is what exercises
-  // the `.error()` boundary, so the bad record is dead-lettered rather than
-  // rejected at the schema. The two layers are deliberate, not redundant.
   .schema(ContactSchema)
   .transform((contact) => {
     if (!contact.email.includes("@")) {
@@ -56,16 +54,15 @@ export default craft()
     http<Contact, { id: number }>({
       method: "POST",
       url: "https://jsonplaceholder.typicode.com/users",
-      body: (ex: { body: Contact }) => ex.body,
+      body: (ex) => ex.body,
       throwOnHttpError: true,
     }),
+    only((result: HttpResult<{ id: number }>) => result.body, "created"),
   )
-  // enrich(http) merges the HttpResult into the body, so the parsed response
-  // lives at `.body` (the original contact fields are still alongside it).
   .transform((synced) => ({
     status: "synced" as const,
     name: synced.name,
-    id: synced.body.id,
+    id: synced.created.id,
   }))
   .tap(log(({ body }) => `Synced ${body.name} as user ${body.id}`))
   .to(noop());

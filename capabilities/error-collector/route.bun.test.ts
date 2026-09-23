@@ -28,11 +28,11 @@ describe("error-collector", () => {
   /**
    * @case a failing route emits an exchange:failed event
    * @preconditions the collector listens on the event bus and writes JSONL
-   * @expectedResult the failure is appended to the error log as a JSON line
+   * @expectedResult the failure is appended to the error log as a JSON line naming the failing route
    */
   it("writes failures to the JSONL log", async () => {
     t = await testContext().routes([collector, failing]).build();
-    await t.test({ delayBeforeDrainMs: 100 });
+    await t.test({ delayBeforeDrain: 100 });
     await t.stop();
 
     const content = await Bun.file(env.errorLogPath).text();
@@ -40,10 +40,10 @@ describe("error-collector", () => {
       .trim()
       .split("\n")
       .filter(Boolean)
-      .map((line) => JSON.parse(line) as { event: string });
+      .map((line) => JSON.parse(line) as { event: string; route: string });
 
     expect(lines.length).toBeGreaterThan(0);
-    expect(lines.some((entry) => entry.event.includes("boom"))).toBe(true);
+    expect(lines.some((entry) => entry.route === "boom")).toBe(true);
     expect(
       lines.some((entry) => /failed|error-handler/.test(entry.event)),
     ).toBe(true);

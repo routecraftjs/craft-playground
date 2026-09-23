@@ -7,7 +7,7 @@ on:
     paths-ignore:
       - "**.md"
       - ".github/ISSUE_TEMPLATE/**"
-  pull_request_target:
+  pull_request:
     branches: ["main"]
     paths-ignore:
       - "**.md"
@@ -91,59 +91,3 @@ jobs:
 
       - name: Run tests
         run: bun run test
-
-  auto-merge:
-    if: |
-      github.event_name == 'pull_request_target' &&
-      github.actor == 'dependabot[bot]' &&
-      success()
-    needs: [validate, test]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-    steps:
-      - name: Checkout PR branch
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Update lockfile
-        run: bun install --no-frozen-lockfile
-
-      - name: Commit lockfile changes
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add bun.lock
-          if git diff --cached --quiet; then
-            echo "No lockfile changes needed"
-          else
-            git commit -m "chore: update bun.lock"
-            git push
-          fi
-
-      - name: Approve PR
-        uses: actions/github-script@v9
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            await github.rest.pulls.createReview({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.payload.pull_request.number,
-              event: 'APPROVE'
-            })
-
-      - name: Merge PR
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_URL: ${{ github.event.pull_request.html_url }}
-        run: gh pr merge --auto --squash "$PR_URL"

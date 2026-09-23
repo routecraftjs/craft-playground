@@ -13,7 +13,9 @@ import { z } from "zod";
  * JSONL file.
  *
  * `.error()` is one of several resilience wrappers; `.retry()` and `.timeout()`
- * ship beside it and scope over the steps below them.
+ * ship beside it. Staged before `.from()` a wrapper covers the whole pipeline;
+ * chained after it, only the next step, so a `.retry()` just above `.enrich()`
+ * would retry the POST alone.
  *
  * The item schema enforces each record's structure; the transform adds a
  * business rule (a real email) on top. Throwing there is what exercises the

@@ -86,7 +86,7 @@ On a dev box the Inspector UI **auto-starts** alongside the server (the `mcp-ins
 
 ```bash
 TOKEN=$(bun run --silent token)
-npx @modelcontextprotocol/inspector --cli \
+bunx @modelcontextprotocol/inspector --cli \
   --transport http --server-url http://localhost:3001/mcp \
   --method tools/list --header "Authorization: Bearer $TOKEN"
 ```
@@ -125,7 +125,7 @@ Requests with no token, or a bad token, get a `401`.
 
 ### Exposing it from a cloud dev box
 
-The server binds to `0.0.0.0` and reads `PORT`, so cloud dev environments can expose it automatically. The startup banner detects the public URL (from `CODESANDBOX_HOST` or the Codespaces forwarding domain) and prints it directly, ready to paste into the Inspector. Behind a custom proxy, set `MCP_PUBLIC_URL` to override. The same bearer token applies wherever you call it.
+The server binds to `0.0.0.0` and reads `PORT`, so cloud dev environments can expose it automatically. The startup banner detects the public URL (from `CODESANDBOX_HOST` or the Codespaces forwarding domain) and prints it directly, ready to paste into the Inspector. Behind a custom proxy, set `MCP_PUBLIC_URL` to override; the server then also accepts requests addressed to that hostname. Browser clients there are still refused until you add their origin to `browserOrigins` in `craft.config.ts`, because only the Inspector origins on CodeSandbox and Codespaces are derived automatically. The same bearer token applies wherever you call it.
 
 - **CodeSandbox** publishes the preview URL for port `3001` publicly, so the printed URL works as-is.
 - **GitHub Codespaces** forwards port `3001` **privately** by default. A request to the public URL hits GitHub's tunnel auth first and returns `401 www-authenticate: tunnel` before reaching the server. Make the port public to use the URL externally:
@@ -140,7 +140,7 @@ The server binds to `0.0.0.0` and reads `PORT`, so cloud dev environments can ex
 
 `error-collector/route.ts` is a capability whose **source is the event bus** (`event([...])`). It subscribes to failure events from every capability and appends each one to `errors.jsonl`. Start the playground and the bad `api-sync` record shows up there as a structured line. It subscribes only to failure events (and filters out its own) to avoid a feedback loop.
 
-> `.error()` is one of several resilience wrappers. `.retry()` and `.timeout()` ship alongside it and scope over the steps below them, so a retried attempt re-runs the tail and a timeout bounds each attempt.
+> `.error()` is one of several resilience wrappers. `.retry()` and `.timeout()` ship alongside it, and position decides their scope: staged before `.from()` they wrap the whole pipeline, chained after it they wrap only the next step. A `.retry()` just above the `.enrich(http(...))` in `api-sync` would retry the POST alone.
 
 ## Project structure
 
@@ -191,7 +191,7 @@ This follows the [recommended Routecraft layout](https://routecraft.dev/docs/int
 Adapters connect capabilities to the outside world:
 
 - **`simple(data)`** - Start with static data
-- **`http(options)`** - Make HTTP requests (as a source, destination, or `enrich`)
+- **`http(options)`** - Make HTTP requests (as a destination or `enrich`), or serve an endpoint (as a source)
 - **`direct()`** - Send to / receive from other capabilities (request/reply)
 - **`mcp()`** - Expose a capability as an MCP tool (or call a remote MCP server)
 - **`embedding(model, opts)`** - Turn text into a vector (in-process, no API key)
@@ -205,11 +205,11 @@ Operations transform and control flow:
 - **`transform(fn)`** - Replace the message body
 - **`filter(predicate)`** - Drop messages that do not match
 - **`enrich(adapter)`** - Pull in data from an external call; the result replaces the body unless an aggregator such as `only()` merges it in
-- **`choice(c => ...)`** - Route down a branch with `when()` / `otherwise()`
+- **`choice(when(...), otherwise(...))`** - Route down the first branch whose predicate matches
 - **`split()`** - Fan an array body into one message per item
 - **`aggregate()`** - Collect split messages back into one
 - **`tap(adapter)`** - Fire-and-forget side effect (logging, metrics)
-- **`error(handler)`** - Catch a failure and recover (the resilience primitive)
+- **`error(handler)`** - Catch a failure and recover, one of several resilience wrappers beside `retry()` and `timeout()`
 
 ### Type safety
 
@@ -281,7 +281,6 @@ Ready to use Routecraft in a real project? Scaffold one with Bun:
 ```bash
 bunx create-routecraft my-app
 cd my-app
-bun install
 bun run start
 ```
 

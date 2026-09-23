@@ -8,7 +8,7 @@
     "bun": ">=1.1.0"
   },
   "scripts": {
-    "start": "NODE_ENV=development LOG_LEVEL=${LOG_LEVEL:-info} craft run index.ts",
+    "start": "NODE_ENV=development LOG_LEVEL=info craft run index.ts",
     "inspect": "bun scripts/inspect.ts",
     "token": "bun scripts/print-token.ts",
     "lint": "eslint .",

@@ -133,11 +133,11 @@ export function printMcpBanner(): void {
     "",
     `   ${token}`,
     "",
-    " Open it in the MCP Inspector:",
+    " Open it in the MCP Inspector (auto-started on a dev box):",
     "",
-    "   npx @modelcontextprotocol/inspector",
+    "   bun run inspect",
     "",
-    `   then connect to ${connectUrl} with transport "Streamable HTTP"`,
+    `   then connect to ${connectUrl} with Connection Type "Direct"`,
     "   and add header  Authorization: Bearer <token above>",
   ];
 

@@ -17,7 +17,7 @@ A ready-to-run [Routecraft](https://routecraft.dev) project you can open in your
 
 ## What is Routecraft?
 
-Routecraft is a type-safe framework for AI automation. Build the tools an agent uses, or the agent itself, with the same fluent DSL. Compose capabilities from:
+Routecraft is the open source AI automation platform your teams build on together. Build the capabilities an agent uses, or the agent itself, with the same fluent DSL. Compose capabilities from:
 
 - 🔌 **Adapters** - Connect to external systems (HTTP, databases, MCP, mail, etc.)
 - 🔄 **Operations** - Transform, filter, route, split, and aggregate data

@@ -7,11 +7,10 @@ on:
     paths-ignore:
       - "**.md"
       - ".github/ISSUE_TEMPLATE/**"
+  # No paths-ignore: ci-passed is a required check, and a check that never
+  # reports blocks the merge.
   pull_request:
     branches: ["main"]
-    paths-ignore:
-      - "**.md"
-      - ".github/ISSUE_TEMPLATE/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -91,3 +90,14 @@ jobs:
 
       - name: Run tests
         run: bun run test
+
+  ci-passed:
+    needs: [setup, validate, test]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      # always(): without it the `if` is ANDed with success(), which is false
+      # once a needed job was cancelled, and the step is skipped.
+      - name: Fail when a job failed, was cancelled or was skipped
+        if: always() && (needs.setup.result != 'success' || needs.validate.result != 'success' || needs.test.result != 'success')
+        run: exit 1
